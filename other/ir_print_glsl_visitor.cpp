@@ -247,6 +247,7 @@ static const char *const operator_glsl_strs[] = {
    "1.0/",
    "inversesqrt",
    "sqrt",
+   "normalize",
    "exp",
    "log",
    "exp2",
