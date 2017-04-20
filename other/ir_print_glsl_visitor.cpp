@@ -61,27 +61,27 @@ _mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_
          buf->printf(" es");
       buf->printf("\n");
 #define EXT(ext) \
-      if (state->ext) \
+      if (state->ext ## _enable) \
          buf->printf("#extension GL_" #ext " : enable\n");
-      EXT(ARB_shader_texture_lod_enable);
-      EXT(ARB_draw_instanced_enable);
-      //EXT(EXT_gpu_shader4_enable);
-      //EXT(EXT_shader_texture_lod_enable);
-      EXT(OES_standard_derivatives_enable);
-      //EXT(EXT_shadow_samplers_enable);
-      //EXT(EXT_frag_depth_enable);
+      EXT(ARB_shader_texture_lod);
+      EXT(ARB_draw_instanced);
+      //EXT(EXT_gpu_shader4);
+      //EXT(EXT_shader_texture_lod);
+      EXT(OES_standard_derivatives);
+      //EXT(EXT_shadow_samplers);
+      //EXT(EXT_frag_depth);
       if (state->es_shader && state->language_version < 300)
       {
-         EXT(EXT_draw_buffers_enable);
-         //EXT(EXT_draw_instanced_enable);
-         EXT(OES_texture_3D_enable);
+         EXT(EXT_draw_buffers);
+         //EXT(EXT_draw_instanced);
+         EXT(OES_texture_3D);
       }
-      //EXT(ARM_framebuffer_read_enable);
-      //EXT(ARM_shader_framebuffer_fetch_enable);
-      EXT(EXT_shader_framebuffer_fetch_enable);
-      //EXT(NV_shader_framebuffer_fetch_enable);
-      EXT(ARB_shader_bit_encoding_enable);
-      EXT(EXT_texture_array_enable);
+      EXT(ARM_framebuffer_read);
+      EXT(ARM_shader_framebuffer_fetch);
+      EXT(EXT_shader_framebuffer_fetch);
+      EXT(NV_shader_framebuffer_fetch);
+      EXT(ARB_shader_bit_encoding);
+      EXT(EXT_texture_array);
 #undef EXT
    }
 
