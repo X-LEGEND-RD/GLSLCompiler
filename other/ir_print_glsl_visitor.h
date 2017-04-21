@@ -38,6 +38,7 @@ public:
    string_buffer(char* buf, size_t size);
    void printf(const char* format, ...);
    const char* string() const;
+   size_t offset() const;
 protected:
    char* buf;
    size_t step;

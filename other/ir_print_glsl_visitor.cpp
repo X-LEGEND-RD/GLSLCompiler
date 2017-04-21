@@ -48,6 +48,10 @@ const char* string_buffer::string() const {
    return buf;
 }
 
+size_t string_buffer::offset() const {
+   return step;
+}
+
 static void print_type(string_buffer *buf, const glsl_type *t);
 
 extern "C" {
@@ -87,7 +91,10 @@ _mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_
 
    foreach_in_list(ir_instruction, ir, instructions) {
       ir_print_glsl_visitor v(buf, state);
+      size_t offset = buf->offset();
       ir->accept(&v);
+      if (offset == buf->offset())
+         continue;
       if (ir->ir_type == ir_type_variable)
          buf->printf(";");
       if (ir->ir_type != ir_type_function)
@@ -175,14 +182,10 @@ void ir_print_glsl_visitor::visit(ir_rvalue *)
 
 void ir_print_glsl_visitor::visit(ir_variable *ir)
 {
-   if (is_gl_identifier(ir->name)) {
-      buf->printf("//");
+   if (is_gl_identifier(ir->name))
       return;
-   }
-   if (ir->type->base_type == GLSL_TYPE_VOID) {
-      buf->printf("//");
+   if (ir->type->base_type == GLSL_TYPE_VOID)
       return;
-   }
 
    if (state->language_version <= 120) {
       if (state->stage == MESA_SHADER_VERTEX) {
