@@ -205,7 +205,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
    }
    int default_precision = GLSL_PRECISION_NONE;
    if (state->es_shader)
-      default_precision = (state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
+      default_precision = (ir->type->contains_integer() == false && state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
    if (ir->data.precision != default_precision) {
       const char *const precision[] = { "", "highp ", "mediump ", "lowp " };
       buf->printf("%s", precision[ir->data.precision]);
