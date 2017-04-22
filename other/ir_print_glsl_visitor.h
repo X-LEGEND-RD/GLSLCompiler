@@ -96,6 +96,8 @@ private:
    const char *unique_name(ir_variable *var);
 
    /** A mapping from ir_variable * -> unique printable names. */
+   int unique_parameter_name_number;
+   int unique_name_number;
    hash_table *printable_names;
    _mesa_symbol_table *symbols;
 

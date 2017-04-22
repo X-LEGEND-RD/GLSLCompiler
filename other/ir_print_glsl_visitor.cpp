@@ -113,6 +113,8 @@ ir_print_glsl_visitor::ir_print_glsl_visitor(string_buffer *buf, struct _mesa_gl
    , state(state)
 {
    indentation = 0;
+   unique_parameter_name_number = 0;
+   unique_name_number = 0;
    printable_names =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
    symbols = _mesa_symbol_table_ctor();
@@ -141,8 +143,7 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
     * names hash because this is the only scope where it can ever appear.
     */
    if (var->name == NULL) {
-      static unsigned arg = 1;
-      return ralloc_asprintf(this->mem_ctx, "parameter_%u", arg++);
+      return ralloc_asprintf(this->mem_ctx, "parameter_%u", ++unique_parameter_name_number);
    }
 
    /* Do we already have a name for this variable? */
@@ -158,8 +159,7 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
    if (_mesa_symbol_table_find_symbol(this->symbols, var->name) == NULL) {
       name = var->name;
    } else {
-      static unsigned i = 1;
-      name = ralloc_asprintf(this->mem_ctx, "%s_%u", var->name, ++i);
+      name = ralloc_asprintf(this->mem_ctx, "%s_%u", var->name, ++unique_name_number);
    }
    _mesa_hash_table_insert(this->printable_names, var, (void *) name);
    _mesa_symbol_table_add_symbol(this->symbols, name, var);
@@ -206,7 +206,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
    int default_precision = GLSL_PRECISION_NONE;
    if (state->es_shader)
       default_precision = (ir->type->contains_integer() == false && state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
-   if (ir->data.precision != default_precision) {
+   if (ir->type->is_sampler() || ir->data.precision != default_precision) {
       const char *const precision[] = { "", "highp ", "mediump ", "lowp " };
       buf->printf("%s", precision[ir->data.precision]);
    }
