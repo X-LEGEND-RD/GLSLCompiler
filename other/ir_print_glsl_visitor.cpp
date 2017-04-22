@@ -64,6 +64,10 @@ _mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_
       if (state->es_shader && state->language_version >= 300)
          buf->printf(" es");
       buf->printf("\n");
+      if (state->es_shader) {
+         buf->printf("precision %s float;\n", state->stage == MESA_SHADER_VERTEX ? "highp" : "mediump");
+         buf->printf("precision mediump int;\n");
+      }
 #define EXT(ext) \
       if (state->ext ## _enable) \
          buf->printf("#extension GL_" #ext " : enable\n");
@@ -198,6 +202,13 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
    } else {
       const char *const mode[] = { "", "uniform ", "", "", "in ", "out ", "in ", "out ", "inout ", "", "", "" };
       buf->printf("%s", mode[ir->data.mode]);
+   }
+   int default_precision = GLSL_PRECISION_NONE;
+   if (state->es_shader)
+      default_precision = (state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
+   if (ir->data.precision != default_precision) {
+      const char *const precision[] = { "", "highp ", "mediump ", "lowp " };
+      buf->printf("%s", precision[ir->data.precision]);
    }
    print_type(buf, ir->type);
    buf->printf(" %s", unique_name(ir));
