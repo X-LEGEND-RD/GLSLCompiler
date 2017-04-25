@@ -84,7 +84,7 @@ public:
  */
 class ir_print_spirv_visitor : public ir_visitor {
 public:
-   ir_print_spirv_visitor(spirv_buffer *f, struct _mesa_glsl_parse_state *state);
+   ir_print_spirv_visitor(spirv_buffer *f);
    virtual ~ir_print_spirv_visitor();
 
    /**
@@ -132,7 +132,6 @@ private:
 
    void *mem_ctx;
    spirv_buffer *f;
-   struct _mesa_glsl_parse_state *state;
 
    int indentation;
 };

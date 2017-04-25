@@ -85,7 +85,7 @@ spirv_buffer::~spirv_buffer() {
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state *state)
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions)
 {
    f->id = 1;
    f->import_id = 0;
@@ -109,7 +109,7 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_pa
    f->extensions.push(SpvMemoryModelGLSL450);
 
    foreach_in_list(ir_instruction, ir, instructions) {
-      ir_print_spirv_visitor v(f, state);
+      ir_print_spirv_visitor v(f);
       ir->accept(&v);
    }
 
@@ -188,9 +188,8 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_pa
 
 } /* extern "C" */
 
-ir_print_spirv_visitor::ir_print_spirv_visitor(spirv_buffer *f, struct _mesa_glsl_parse_state *state)
+ir_print_spirv_visitor::ir_print_spirv_visitor(spirv_buffer *f)
    : f(f)
-   , state(state)
 {
    indentation = 0;
    printable_names =
@@ -487,6 +486,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
 
       unsigned int value_id = f->id++;
       switch (ir->operation) {
+      default:
       case ir_unop_neg:
          f->functions.push(SpvOpFNegate | (4 << SpvWordCountShift));
          f->functions.push(return_id);
@@ -514,6 +514,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          f->functions.push(value_id);
          f->functions.push(f->import_id);
          switch (ir->operation) {
+         default:
          case ir_unop_abs:       f->functions.push(GLSLstd450FAbs);        break;
          case ir_unop_sign:      f->functions.push(GLSLstd450FSign);       break;
          case ir_unop_rcp:       f->functions.push(GLSLstd450FAbs);        break;// TODO
@@ -547,6 +548,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
 
       unsigned int value_id = f->id++;
       switch (ir->operation) {
+      default:
       case ir_binop_add:
       case ir_binop_sub:
       case ir_binop_mul:
@@ -560,6 +562,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_nequal:
       case ir_binop_dot:
          switch (ir->operation) {
+         default:
          case ir_binop_add:         f->functions.push(SpvOpFAdd | (5 << SpvWordCountShift));                    break;
          case ir_binop_sub:         f->functions.push(SpvOpFSub | (5 << SpvWordCountShift));                    break;
          case ir_binop_mul:         f->functions.push(SpvOpFMul | (5 << SpvWordCountShift));                    break;
@@ -585,6 +588,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          f->functions.push(value_id);
          f->functions.push(f->import_id);
          switch (ir->operation) {
+         default:
          case ir_binop_min:      f->functions.push(GLSLstd450FMin);  break;
          case ir_binop_max:      f->functions.push(GLSLstd450FMax);  break;
          case ir_binop_pow:      f->functions.push(GLSLstd450Pow);   break;
@@ -607,6 +611,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
 
       unsigned int value_id = f->id++;
       switch (ir->operation) {
+      default:
       case ir_triop_fma:
       case ir_triop_lrp:
          f->functions.push(SpvOpExtInst | (8 << SpvWordCountShift));
@@ -614,6 +619,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          f->functions.push(value_id);
          f->functions.push(f->import_id);
          switch (ir->operation) {
+         default:
          case ir_triop_fma:   f->functions.push(GLSLstd450Fma);   break;
          case ir_triop_lrp:   f->functions.push(GLSLstd450FMix);  break;
          }
@@ -813,7 +819,6 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
       f->functions.push(pointer_id);
       ir->ir_temp = value_id;
    } else if (var->data.mode == ir_var_shader_out) {
-      unsigned int value_id = f->id++;
       unsigned int pointer_id = var->ir_temp;
       f->functions.push(SpvOpStore | (3 << SpvWordCountShift));
       f->functions.push(pointer_id);
