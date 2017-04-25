@@ -610,7 +610,7 @@ void ir_print_glsl_visitor::visit(ir_assignment *ir)
 
    ir->lhs->accept(this);
 
-   if (ir->lhs->type->components() > 1 && ir->write_mask != 0xF) {
+   if (ir->write_mask != ((1 << ir->lhs->type->components()) - 1)) {
       char mask[5];
       unsigned j = 0;
 
@@ -630,8 +630,10 @@ void ir_print_glsl_visitor::visit(ir_assignment *ir)
 
 void ir_print_glsl_visitor::visit(ir_constant *ir)
 {
-   print_type(buf, ir->type);
-   buf->printf("(");
+   if (ir->type->components() > 1 || ir->type->is_float() == false) {
+      print_type(buf, ir->type);
+      buf->printf("(");
+   }
 
    if (ir->type->is_array()) {
       for (unsigned i = 0; i < ir->type->length; i++)
@@ -684,7 +686,10 @@ void ir_print_glsl_visitor::visit(ir_constant *ir)
          }
       }
    }
-   buf->printf(")");
+
+   if (ir->type->components() > 1 || ir->type->is_float() == false) {
+      buf->printf(")");
+   }
 }
 
 void
