@@ -789,7 +789,18 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          f->types.push(sampled_image_id);
          f->types.push(image_id);
 
-         load_type_id = sampled_image_id;
+         unsigned int type_pointer_id = f->id++;
+         f->types.push(SpvOpTypePointer | (4 << SpvWordCountShift));
+         f->types.push(type_pointer_id);
+         f->types.push(SpvStorageClassUniformConstant);
+         f->types.push(sampled_image_id);
+
+         f->types.push(SpvOpVariable | (4 << SpvWordCountShift));
+         f->types.push(type_pointer_id);
+         f->types.push(var->ir_temp);
+         f->types.push(SpvStorageClassUniformConstant);
+
+         load_type_id = type_pointer_id;
       } else {
          load_type_id = visit_type(f, ir->type);
       }
