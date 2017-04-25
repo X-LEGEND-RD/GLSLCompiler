@@ -339,8 +339,8 @@ static const char *const operator_glsl_strs[] = {
    ">",
    "<=",
    ">=",
-   "equal",
-   "notEqual",
+   "==",
+   "!=",
    "==",
    "!=",
    "<<",
@@ -380,7 +380,9 @@ static const char *const operator_vec_glsl_strs[] = {
 
 static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type)
 {
-   if (op == ir_binop_equal || op == ir_binop_nequal || op == ir_binop_mod || (op >= ir_binop_dot && op <= ir_binop_pow))
+   if (op == ir_binop_equal || op == ir_binop_nequal)
+      return false;
+   if (op == ir_binop_mod || (op >= ir_binop_dot && op <= ir_binop_pow))
       return true;
    if (type->is_vector() && (op >= ir_binop_less && op <= ir_binop_nequal))
       return true;
@@ -576,7 +578,13 @@ void ir_print_glsl_visitor::visit(ir_swizzle *ir)
       ir->mask.w,
    };
 
-   ir->val->accept(this);
+   if (ir->val->type->is_float() && ir->val->type->components() == 1) {
+      buf->printf("vec2(");
+      ir->val->accept(this);
+      buf->printf(", 0.0)");
+   } else {
+      ir->val->accept(this);
+   }
    buf->printf(".");
    for (unsigned i = 0; i < ir->mask.num_components; i++) {
       buf->printf("%c", "xyzw"[swiz[i]]);
