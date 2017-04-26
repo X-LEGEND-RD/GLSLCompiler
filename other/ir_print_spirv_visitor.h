@@ -37,7 +37,6 @@ class binary_buffer {
 public:
    binary_buffer(unsigned int* buf, size_t size);
    void push(unsigned int value);
-   unsigned int& get();
    void push(const char* text);
    size_t count() const;
 protected:
@@ -75,6 +74,8 @@ public:
    unsigned int import_id;
    unsigned int uniform_struct_id;
    unsigned int uniform_id;
+   unsigned int uniform_pointer_id;
+   unsigned int uniform_offset;
    unsigned int function_id;
    unsigned int main_id;
 

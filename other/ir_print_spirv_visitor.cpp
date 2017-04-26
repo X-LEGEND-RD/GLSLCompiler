@@ -40,10 +40,6 @@ void binary_buffer::push(unsigned int value) {
    buf[step++] = value;
 }
 
-unsigned int& binary_buffer::get() {
-   return buf[step];
-}
-
 void binary_buffer::push(const char* text) {
    size_t len = strlen(text);
    size_t count = (len + sizeof(unsigned int)) / sizeof(unsigned int);
@@ -96,6 +92,8 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions)
    f->import_id = 0;
    f->uniform_struct_id = 0;
    f->uniform_id = 0;
+   f->uniform_pointer_id = 0;
+   f->uniform_offset = 0;
    f->function_id = 0;
    f->main_id = 0;
    f->void_id = 0;
@@ -121,22 +119,20 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions)
 
    unsigned int uniforms_count = f->uniforms.count();
    if (uniforms_count != 0) {
-      unsigned int struct_id = f->id++;
       f->types.push(SpvOpTypeStruct | ((uniforms_count + 2) << SpvWordCountShift));
-      f->types.push(struct_id);
+      f->types.push(f->uniform_struct_id);
       for (unsigned int i = 0; i < f->uniforms.count(); ++i) {
          f->types.push(f->uniforms_data[i]);
       }
 
-      unsigned int pointer_id = f->id++;
       f->types.push(SpvOpTypePointer | (4 << SpvWordCountShift));
-      f->types.push(pointer_id);
+      f->types.push(f->uniform_pointer_id);
       f->types.push(SpvStorageClassUniform);
-      f->types.push(struct_id);
+      f->types.push(f->uniform_struct_id);
 
       f->types.push(SpvOpVariable | (4 << SpvWordCountShift));
-      f->types.push(pointer_id);
-      f->types.push(0u);
+      f->types.push(f->uniform_pointer_id);
+      f->types.push(f->uniform_id);
       f->types.push(SpvStorageClassUniform);
    }
 
@@ -350,7 +346,10 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
       }
 
       if (f->uniform_id == 0) {
+
+         f->uniform_pointer_id = f->id++;
          f->uniform_id = f->id++;
+
          size_t len = strlen("global");
          size_t count = (len + sizeof(unsigned int)) / sizeof(unsigned int);
          f->names.push(SpvOpName | ((count + 2) << SpvWordCountShift));
@@ -397,9 +396,12 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          f->decorates.push(f->uniform_struct_id);
          f->decorates.push(f->uniforms.count());
          f->decorates.push(SpvDecorationOffset);
-         f->decorates.push(f->uniforms.count() * 16);
+         f->decorates.push(f->uniform_offset);
+
+         ir->ir_temp2 = f->uniforms.count();
 
          f->uniforms.push(vector_id);
+         f->uniform_offset += ir->type->matrix_columns * 16;
       }
 
    } else {
@@ -862,6 +864,31 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          load_type_id = type_pointer_id;
       } else {
          load_type_id = visit_type(f, ir->type);
+      }
+
+      if (var->data.mode == ir_var_uniform) {
+
+         unsigned int type_pointer_id = f->id++;
+         unsigned int access_id = f->id++;
+         unsigned int constant_id = f->id++;
+
+         f->types.push(SpvOpTypePointer | (4 << SpvWordCountShift));
+         f->types.push(type_pointer_id);
+         f->types.push(SpvStorageClassUniform);
+         f->types.push(load_type_id);
+
+         unsigned int int_type_id = visit_type(f, glsl_type::int_type);
+         f->types.push(SpvOpConstant | (4 << SpvWordCountShift));
+         f->types.push(int_type_id);
+         f->types.push(constant_id);
+         f->types.push(var->ir_temp2);
+
+         f->functions.push(SpvOpAccessChain | (5 << SpvWordCountShift));
+         f->functions.push(type_pointer_id);
+         f->functions.push(access_id);
+         f->functions.push(f->uniform_id);
+         f->functions.push(constant_id);
+         var->ir_temp = access_id;
       }
 
       unsigned int value_id = f->id++;
