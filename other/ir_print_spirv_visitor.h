@@ -67,6 +67,9 @@ public:
    binary_buffer inouts;
    binary_buffer functions;
 
+   unsigned int precision_float;
+   unsigned int precision_int;
+
    unsigned int id;
 
    unsigned int import_id;

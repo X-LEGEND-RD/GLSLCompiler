@@ -74,7 +74,8 @@ spirv_buffer::spirv_buffer(unsigned int* buf, size_t size)
    , inouts(inouts_data, 16384)
    , functions(functions_data, 16384)
 {
-
+   precision_float = GLSL_PRECISION_NONE;
+   precision_int = GLSL_PRECISION_NONE;
 }
 
 spirv_buffer::~spirv_buffer() {
@@ -237,6 +238,12 @@ ir_print_spirv_visitor::unique_name(ir_variable *var)
    f->names.push(var->name);
    var->ir_temp = name_id;
 
+   if (var->data.precision == GLSL_PRECISION_MEDIUM) {
+      f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+      f->decorates.push(var->ir_temp);
+      f->decorates.push(SpvDecorationRelaxedPrecision);
+   }
+
    _mesa_hash_table_insert(this->printable_names, var, (void *) name_id);
 
    return name_id;
@@ -378,6 +385,13 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          f->names.push(f->uniform_struct_id);
          f->names.push(f->uniforms.count());
          f->names.push(ir->name);
+
+         if (ir->data.precision == GLSL_PRECISION_MEDIUM) {
+            f->decorates.push(SpvOpMemberDecorate | (4 << SpvWordCountShift));
+            f->decorates.push(f->uniform_struct_id);
+            f->decorates.push(f->uniforms.count());
+            f->decorates.push(SpvDecorationRelaxedPrecision);
+         }
 
          f->decorates.push(SpvOpMemberDecorate | (5 << SpvWordCountShift));
          f->decorates.push(f->uniform_struct_id);
@@ -642,6 +656,26 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       f->functions.push(ir->operands[2]->ir_temp);
       ir->ir_temp = value_id;
    }
+
+   switch (ir->type->base_type) {
+   default:
+      break;
+   case GLSL_TYPE_UINT:
+   case GLSL_TYPE_INT:
+      if (f->precision_int == GLSL_PRECISION_MEDIUM) {
+         f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+         f->decorates.push(ir->ir_temp);
+         f->decorates.push(SpvDecorationRelaxedPrecision);
+      }
+      break;
+   case GLSL_TYPE_FLOAT:
+      if (f->precision_float == GLSL_PRECISION_MEDIUM) {
+         f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+         f->decorates.push(ir->ir_temp);
+         f->decorates.push(SpvDecorationRelaxedPrecision);
+      }
+      break;
+   }
 }
 
 void ir_print_spirv_visitor::visit(ir_texture *ir)
@@ -731,6 +765,13 @@ void ir_print_spirv_visitor::visit(ir_texture *ir)
          f->functions.push(ids_data[i]);
       }
       ir->ir_temp = result_id;
+
+      const ir_dereference_variable* var = ir->sampler->as_dereference_variable();
+      if (var && var->var->data.precision == GLSL_PRECISION_MEDIUM) {
+         f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+         f->decorates.push(result_id);
+         f->decorates.push(SpvDecorationRelaxedPrecision);
+      }
       break;
    }
    case ir_txl:
@@ -829,6 +870,7 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
       f->functions.push(load_type_id);
       f->functions.push(value_id);
       f->functions.push(pointer_id);
+
       ir->ir_temp = value_id;
    } else if (var->data.mode == ir_var_auto || var->data.mode == ir_var_shader_out || var->data.mode == ir_var_temporary) {
       if (ir->ir_temp) {
@@ -838,6 +880,12 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          f->functions.push(ir->ir_temp);
       }
       ir->ir_temp = var->ir_temp;
+   }
+
+   if (var->data.precision == GLSL_PRECISION_MEDIUM) {
+      f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+      f->decorates.push(ir->ir_temp);
+      f->decorates.push(SpvDecorationRelaxedPrecision);
    }
 }
 
@@ -944,6 +992,25 @@ void ir_print_spirv_visitor::visit(ir_constant *ir)
          for (unsigned i = 0; i < ids.count(); i++) {
             f->types.push(temp[i]);
          }
+      }
+      switch (ir->type->base_type) {
+      default:
+         break;
+      case GLSL_TYPE_UINT:
+      case GLSL_TYPE_INT:
+         if (f->precision_int == GLSL_PRECISION_MEDIUM) {
+            f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+            f->decorates.push(value_id);
+            f->decorates.push(SpvDecorationRelaxedPrecision);
+         }
+         break;
+      case GLSL_TYPE_FLOAT:
+         if (f->precision_float == GLSL_PRECISION_MEDIUM) {
+            f->decorates.push(SpvOpDecorate | (3 << SpvWordCountShift));
+            f->decorates.push(value_id);
+            f->decorates.push(SpvDecorationRelaxedPrecision);
+         }
+         break;
       }
       ir->ir_temp = value_id;
    }
