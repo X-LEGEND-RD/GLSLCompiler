@@ -1005,69 +1005,101 @@ ir_print_spirv_visitor::visit(ir_if *ir)
 {
    ir->condition->accept(this);
 
+   unsigned int label_then_id = f->id++;
+   unsigned int label_else_id = f->id++;
+   unsigned int label_end_id = label_else_id;
+   if (ir->else_instructions.is_empty() == false) {
+      label_end_id = f->id++;
+   }
+
    f->functions.push(SpvOpBranchConditional | (4 << SpvWordCountShift));
    f->functions.push(ir->condition->ir_temp);
-   unsigned int& label_then_id = f->functions.get();
-   f->functions.push(0u);
-   unsigned int& label_else_id = f->functions.get();
-   f->functions.push(0u);
+   f->functions.push(label_then_id);
+   f->functions.push(label_else_id);
 
-   label_then_id = f->id++;
    f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
    f->functions.push(label_then_id);
 
    foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
+      inst->parent = ir;
       inst->accept(this);
    }
 
-   if (ir->else_instructions.is_empty()) {
-      label_else_id = f->id++;
-      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
-      f->functions.push(label_else_id);
-      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
-      f->functions.push(label_else_id);
-   } else {
-      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
-      unsigned int& label_branch_id = f->functions.get();
-      f->functions.push(0u);
+   if (ir->else_instructions.is_empty() == false) {
 
-      label_else_id = f->id++;
+      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+      f->functions.push(label_end_id);
       f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
       f->functions.push(label_else_id);
 
       foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
+         inst->parent = ir;
          inst->accept(this);
       }
-
-      label_branch_id = f->id++;
-      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
-      f->functions.push(label_branch_id);
-      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
-      f->functions.push(label_branch_id);
    }
+
+   f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+   f->functions.push(label_end_id);
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_end_id);
 }
 
 void
 ir_print_spirv_visitor::visit(ir_loop *ir)
 {
-   //fprintf(f, "while (true) {\n");
-   //indentation++;
-   //
-   //foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
-   //   indent();
-   //   inst->accept(this);
-   //   fprintf(f, "\n");
-   //}
-   //indentation--;
-   //indent();
-   //
-   //fprintf(f, "}\n");
+   unsigned int label_id = f->id++;
+
+   f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+   f->functions.push(label_id);
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_id);
+
+   unsigned int label_inner_id = f->id++;
+   unsigned int label_outer_id = f->id++;
+
+   f->functions.push(SpvOpLoopMerge | (4 << SpvWordCountShift));
+   f->functions.push(label_outer_id);
+   f->functions.push(label_inner_id);
+   f->functions.push(SpvLoopControlMaskNone);
+
+   f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+   f->functions.push(label_inner_id);
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_inner_id);
+
+   ir->ir_temp = label_id;
+   ir->ir_temp2 = label_outer_id;
+
+   foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
+      inst->parent = ir;
+      inst->accept(this);
+   }
+
+   f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+   f->functions.push(label_id);
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_outer_id);
 }
 
 void
 ir_print_spirv_visitor::visit(ir_loop_jump *ir)
 {
-   //fprintf(f, "%s", ir->is_break() ? "break" : "continue");
+   const ir_loop *loop = NULL;
+   ir_instruction *parent = (ir_instruction *)ir->parent;
+   while (parent) {
+      loop = parent->as_loop();
+      if (loop)
+         break;
+      parent = (ir_instruction*)parent->parent;
+   }
+   if (loop == NULL)
+      return;
+   unsigned int label_id = f->id++;
+
+   f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+   f->functions.push(ir->is_break() ? loop->ir_temp2 : loop->ir_temp);
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_id);
 }
 
 void
