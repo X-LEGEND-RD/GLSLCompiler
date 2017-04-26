@@ -40,6 +40,10 @@ void binary_buffer::push(unsigned int value) {
    buf[step++] = value;
 }
 
+unsigned int& binary_buffer::get() {
+   return buf[step];
+}
+
 void binary_buffer::push(const char* text) {
    size_t len = strlen(text);
    size_t count = (len + sizeof(unsigned int)) / sizeof(unsigned int);
@@ -94,6 +98,7 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions)
    f->function_id = 0;
    f->main_id = 0;
    f->void_id = 0;
+   f->bool_id = 0;
    memset(f->float_id, 0, sizeof(f->float_id));
    memset(f->int_id, 0, sizeof(f->int_id));
 
@@ -250,6 +255,13 @@ unsigned int visit_type(spirv_buffer *f, const struct glsl_type *type)
       ids = f->float_id;
    } else if (type->is_integer()) {
       ids = f->int_id;
+   } else if (type->is_boolean()) {
+      if (f->bool_id == 0) {
+         f->bool_id = f->id++;
+         f->types.push(SpvOpTypeBool | (2 << SpvWordCountShift));
+         f->types.push(f->bool_id);
+      }
+      return f->bool_id;
    } else {
       return 0;
    }
@@ -386,7 +398,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
 
       unsigned int name_id = unique_name(ir);
 
-      if (ir->data.mode == ir_var_temporary) {
+      if (ir->data.mode == ir_var_auto || ir->data.mode == ir_var_temporary) {
          f->functions.push(SpvOpVariable | (4 << SpvWordCountShift));
          f->functions.push(pointer_id);
          f->functions.push(name_id);
@@ -787,7 +799,7 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          f->types.push(0u);
          f->types.push(0u);
          f->types.push(0u);
-         f->types.push(0u);
+         f->types.push(1u);
          f->types.push(SpvImageFormatUnknown);
 
          unsigned int sampled_image_id = f->id++;
@@ -818,11 +830,14 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
       f->functions.push(value_id);
       f->functions.push(pointer_id);
       ir->ir_temp = value_id;
-   } else if (var->data.mode == ir_var_shader_out) {
-      unsigned int pointer_id = var->ir_temp;
-      f->functions.push(SpvOpStore | (3 << SpvWordCountShift));
-      f->functions.push(pointer_id);
-      f->functions.push(ir->ir_temp);
+   } else if (var->data.mode == ir_var_auto || var->data.mode == ir_var_shader_out || var->data.mode == ir_var_temporary) {
+      if (ir->ir_temp) {
+         unsigned int pointer_id = var->ir_temp;
+         f->functions.push(SpvOpStore | (3 << SpvWordCountShift));
+         f->functions.push(pointer_id);
+         f->functions.push(ir->ir_temp);
+      }
+      ir->ir_temp = var->ir_temp;
    }
 }
 
@@ -860,7 +875,7 @@ void ir_print_spirv_visitor::visit(ir_assignment *ir)
       unsigned int type_id = visit_type(f, ir->lhs->type);
       unsigned int value_id = f->id++;
       unsigned int source_id = ir->rhs->ir_temp;
-      f->functions.push(SpvOpVectorShuffle | ((5 + ir->lhs->type->components()) << SpvWordCountShift));
+      f->functions.push(SpvOpVectorShuffle | ((5 + _mesa_bitcount(ir->write_mask)) << SpvWordCountShift));
       f->functions.push(type_id);
       f->functions.push(value_id);
       f->functions.push(source_id);
@@ -964,51 +979,72 @@ ir_print_spirv_visitor::visit(ir_return *ir)
 void
 ir_print_spirv_visitor::visit(ir_discard *ir)
 {
-   //if (ir->condition) {
-   //   fprintf(f, "if ");
-   //   ir->condition->accept(this);
-   //   fprintf(f, "\n");
-   //   indentation++;
-   //   indent();
-   //   indentation--;
-   //}
-   //
-   //fprintf(f, "discard");
+   if (ir->condition) {
+      ir->condition->accept(this);
+      unsigned int label_begin_id = f->id++;
+      unsigned int label_end_id = f->id++;
+      f->functions.push(SpvOpBranchConditional | (4 << SpvWordCountShift));
+      f->functions.push(ir->condition->ir_temp);
+      f->functions.push(label_begin_id);
+      f->functions.push(label_end_id);
+
+      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+      f->functions.push(label_begin_id);
+
+      f->functions.push(SpvOpKill | (1 << SpvWordCountShift));
+
+      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+      f->functions.push(label_end_id);
+   } else {
+      f->functions.push(SpvOpKill | (1 << SpvWordCountShift));
+   }
 }
 
 void
 ir_print_spirv_visitor::visit(ir_if *ir)
 {
-   //fprintf(f, "if (");
-   //ir->condition->accept(this);
-   //fprintf(f, ") {\n");
-   //indentation++;
-   //
-   //foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
-   //   indent();
-   //   inst->accept(this);
-   //   fprintf(f, ";\n");
-   //}
-   //indentation--;
-   //indent();
-   //
-   //fprintf(f, "}\n");
-   //
-   //indent();
-   //if (!ir->else_instructions.is_empty()) {
-   //   fprintf(f, "else {\n");
-   //   indentation++;
-   //
-   //   foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
-   //      indent();
-   //      inst->accept(this);
-   //      fprintf(f, ";\n");
-   //   }
-   //   indentation--;
-   //   indent();
-   //
-   //   fprintf(f, "}\n");
-   //}
+   ir->condition->accept(this);
+
+   f->functions.push(SpvOpBranchConditional | (4 << SpvWordCountShift));
+   f->functions.push(ir->condition->ir_temp);
+   unsigned int& label_then_id = f->functions.get();
+   f->functions.push(0u);
+   unsigned int& label_else_id = f->functions.get();
+   f->functions.push(0u);
+
+   label_then_id = f->id++;
+   f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+   f->functions.push(label_then_id);
+
+   foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
+      inst->accept(this);
+   }
+
+   if (ir->else_instructions.is_empty()) {
+      label_else_id = f->id++;
+      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+      f->functions.push(label_else_id);
+      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+      f->functions.push(label_else_id);
+   } else {
+      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+      unsigned int& label_branch_id = f->functions.get();
+      f->functions.push(0u);
+
+      label_else_id = f->id++;
+      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+      f->functions.push(label_else_id);
+
+      foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
+         inst->accept(this);
+      }
+
+      label_branch_id = f->id++;
+      f->functions.push(SpvOpBranch | (2 << SpvWordCountShift));
+      f->functions.push(label_branch_id);
+      f->functions.push(SpvOpLabel | (2 << SpvWordCountShift));
+      f->functions.push(label_branch_id);
+   }
 }
 
 void
