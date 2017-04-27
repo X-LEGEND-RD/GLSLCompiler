@@ -57,6 +57,7 @@ public:
    unsigned int* uniforms_data;
    unsigned int* inouts_data;
    unsigned int* functions_data;
+   unsigned int* reflections_data;
 
    binary_buffer extensions;
    binary_buffer names;
@@ -65,6 +66,7 @@ public:
    binary_buffer uniforms;
    binary_buffer inouts;
    binary_buffer functions;
+   binary_buffer reflections;
 
    unsigned int precision_float;
    unsigned int precision_int;
