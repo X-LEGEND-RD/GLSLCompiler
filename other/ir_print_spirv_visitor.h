@@ -83,6 +83,8 @@ public:
    unsigned int bool_id;
    unsigned int float_id[4*4];
    unsigned int int_id[4*4];
+   unsigned int const_float_id[16];
+   unsigned int const_int_id[16];
 };
 
 /**
