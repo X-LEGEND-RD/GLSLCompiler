@@ -1125,6 +1125,8 @@ void ir_print_spirv_visitor::visit(ir_constant *ir)
             if (ir->value.f[0] >= 0.0f && ir->value.f[0] <= 15.0f && fmodf(ir->value.f[0], 1.0f) == 0.0f)
                ir->ir_temp = f->const_float_id[(int)ir->value.f[0]];
             break;
+         default:
+            break;
          }
       }
       if (ir->ir_temp)
@@ -1201,6 +1203,8 @@ void ir_print_spirv_visitor::visit(ir_constant *ir)
          case GLSL_TYPE_FLOAT:
             if (ir->value.f[0] >= 0.0f && ir->value.f[0] <= 15.0f && fmodf(ir->value.f[0], 1.0f) == 0.0f)
                f->const_float_id[(int)ir->value.f[0]] = ir->ir_temp;
+            break;
+         default:
             break;
          }
       }
