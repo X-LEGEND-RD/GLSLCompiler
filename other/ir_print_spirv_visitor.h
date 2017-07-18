@@ -72,6 +72,7 @@ public:
    unsigned int precision_int;
 
    unsigned int id;
+   unsigned int binding_id;
 
    unsigned int import_id;
    unsigned int uniform_struct_id;
@@ -87,6 +88,8 @@ public:
    unsigned int int_id[4*4];
    unsigned int const_float_id[16];
    unsigned int const_int_id[16];
+
+   GLenum shader_type;
 };
 
 /**
