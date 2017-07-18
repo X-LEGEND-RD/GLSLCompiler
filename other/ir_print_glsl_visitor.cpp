@@ -52,7 +52,7 @@ size_t string_buffer::offset() const {
    return step;
 }
 
-static void print_type(string_buffer *buf, const glsl_type *t);
+static void print_type(string_buffer *buf, const glsl_type *t, unsigned int version);
 
 extern "C" {
 void
@@ -167,13 +167,15 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
 }
 
 static void
-print_type(string_buffer *buf, const glsl_type *t)
+print_type(string_buffer *buf, const glsl_type *t, unsigned int version)
 {
    if (t->base_type == GLSL_TYPE_ARRAY) {
-      print_type(buf, t->fields.array);
+      print_type(buf, t->fields.array, version);
       buf->printf("[%u]", t->length);
    } else if ((t->base_type == GLSL_TYPE_STRUCT) && !is_gl_identifier(t->name)) {
       buf->printf("%s_%p", t->name, (void *) t);
+   } else if ((t->base_type == GLSL_TYPE_UINT) && version <= 120) {
+      buf->printf("%s", "int");
    } else {
       buf->printf("%s", t->name);
    }
@@ -210,7 +212,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
       const char *const precision[] = { "", "highp ", "mediump ", "lowp " };
       buf->printf("%s", precision[ir->data.precision]);
    }
-   print_type(buf, ir->type);
+   print_type(buf, ir->type, state->language_version);
    buf->printf(" %s", unique_name(ir));
 }
 
@@ -218,7 +220,7 @@ void ir_print_glsl_visitor::visit(ir_function_signature *ir)
 {
    _mesa_symbol_table_push_scope(symbols);
 
-   print_type(buf, ir->return_type);
+   print_type(buf, ir->return_type, state->language_version);
    buf->printf(" %s(", ir->function_name());
    foreach_in_list(ir_variable, inst, &ir->parameters) {
       if (inst != ir->parameters.head_sentinel.next)
@@ -393,7 +395,7 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
    if (ir->get_num_operands() == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
-         print_type(buf, ir->type);
+         print_type(buf, ir->type, state->language_version);
          buf->printf("(");
       } else if (ir->operation == ir_unop_rcp) {
          buf->printf("(1.0/(");
@@ -421,7 +423,7 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
       if (ir->operation == ir_binop_mod)
       {
          buf->printf("(");
-         print_type(buf, ir->type);
+         print_type(buf, ir->type, state->language_version);
          buf->printf("(");
       }
       if (ir->type->is_vector() && (ir->operation >= ir_binop_less && ir->operation <= ir_binop_nequal))
@@ -639,7 +641,7 @@ void ir_print_glsl_visitor::visit(ir_assignment *ir)
 void ir_print_glsl_visitor::visit(ir_constant *ir)
 {
    if (ir->type->components() > 1 || ir->type->is_float() == false) {
-      print_type(buf, ir->type);
+      print_type(buf, ir->type, state->language_version);
       buf->printf("(");
    }
 
