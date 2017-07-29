@@ -27,18 +27,39 @@
 #include "main/macros.h"
 #include "util/hash_table.h"
 
-string_buffer::string_buffer(char* buf, size_t size)
-   : buf(buf)
-   , step(0)
-   , size(size)
+string_buffer::string_buffer()
 {
+   buf = (char*)malloc(1024);
+   step = 0;
+   if (buf) {
+      buf[0] = '\0';
+      capacity = 1024;
+   }
+   else {
+      capacity = 0;
+   }
+}
+
+string_buffer::~string_buffer()
+{
+   free(buf);
 }
 
 void string_buffer::printf(const char* format, ...) {
+
+   if (step + 1024 >= capacity) {
+      capacity += 1024;
+      buf = (char*)realloc(buf, capacity);
+      if (buf == NULL) {
+         capacity = 0;
+         return;
+      }
+   }
+
    va_list args;
 
    va_start(args, format);
-   size_t count = vsnprintf(buf + step, size - step, format, args);
+   size_t count = vsnprintf(buf + step, capacity - step, format, args);
    va_end(args);
 
    step += count;
@@ -48,7 +69,7 @@ const char* string_buffer::string() const {
    return buf;
 }
 
-size_t string_buffer::offset() const {
+unsigned int string_buffer::offset() const {
    return step;
 }
 
@@ -289,6 +310,30 @@ static const char *const operator_glsl_strs[] = {
    "floatBitsToInt",
    "uintBitsToFloat",
    "floatBitsToUint",
+   "bitcast_u642d",
+   "bitcast_i642d",
+   "bitcast_d2u64",
+   "bitcast_d2i64",
+   "i642i",
+   "u642i",
+   "i642u",
+   "u642u",
+   "i642b",
+   "i642f",
+   "u642f",
+   "i642d",
+   "u642d",
+   "i2i64",
+   "u2i64",
+   "b2i64",
+   "f2i64",
+   "d2i64",
+   "i2u64",
+   "u2u64",
+   "f2u64",
+   "d2u64",
+   "u642i64",
+   "i642u64",
    "trunc",
    "ceil",
    "floor",
@@ -326,9 +371,15 @@ static const char *const operator_glsl_strs[] = {
    "interpolate_at_centroid",
    "get_buffer_size",
    "ssbo_unsized_array_length",
+   "ballot",
+   "read_first_invocation",
    "vote_any",
    "vote_all",
    "vote_eq",
+   "packInt2x32",
+   "packUint2x32",
+   "unpackInt2x32",
+   "unpackUint2x32",
    "+",
    "-",
    "*",
@@ -393,6 +444,8 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
 
 void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
+   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode);
+
    if (ir->get_num_operands() == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
          print_type(buf, ir->type, state->language_version);
@@ -527,11 +580,6 @@ void ir_print_glsl_visitor::visit(ir_texture *ir)
       if (ir->projector) {
          buf->printf(", ");
          ir->projector->accept(this);
-      }
-
-      if (ir->shadow_comparitor) {
-         buf->printf(", ");
-         ir->shadow_comparitor->accept(this);
       }
    }
 
