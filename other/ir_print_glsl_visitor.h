@@ -35,14 +35,15 @@ extern "C" {
 
 class string_buffer {
 public:
-   string_buffer(char* buf, size_t size);
+   string_buffer();
+   virtual ~string_buffer();
    void printf(const char* format, ...);
    const char* string() const;
-   size_t offset() const;
+   unsigned int offset() const;
 protected:
    char* buf;
-   size_t step;
-   const size_t size;
+   unsigned int step;
+   unsigned int capacity;
 };
 
 /**
@@ -107,5 +108,10 @@ private:
 
    int indentation;
 };
+
+extern "C" {
+void
+_mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_parse_state *state);
+}
 
 #endif /* IR_PRINT_GLSL_VISITOR_H */

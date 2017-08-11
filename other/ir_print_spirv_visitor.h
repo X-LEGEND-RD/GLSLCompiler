@@ -31,38 +31,29 @@
 
 extern "C" {
 #include "program/symbol_table.h"
+#include "util/u_vector.h"
 }
 
 class binary_buffer {
 public:
-   binary_buffer(unsigned int* buf, size_t size);
+   binary_buffer();
+   virtual ~binary_buffer();
    void push(unsigned int value);
    void push(const char* text);
-   size_t count() const;
+   unsigned int count();
    unsigned int* data();
    unsigned int operator[](size_t i);
 protected:
-   unsigned int* buf;
-   size_t step;
-   const size_t size;
+   struct u_vector vector_buffer;
 };
 
 class spirv_buffer : public binary_buffer {
 public:
-   spirv_buffer(unsigned int* buf, size_t size);
+   spirv_buffer();
    ~spirv_buffer();
 
-   unsigned int* extensions_data;
-   unsigned int* names_data;
-   unsigned int* decorates_data;
-   unsigned int* types_data;
-   unsigned int* uniforms_data;
-   unsigned int* inouts_data;
-   unsigned int* functions_data;
    unsigned int* per_vertices_data;
    unsigned int* per_vertices_data2;
-   unsigned int* reflections_data;
-
    binary_buffer extensions;
    binary_buffer names;
    binary_buffer decorates;
