@@ -39,6 +39,8 @@ public:
    void push(unsigned int value);
    void push(const char* text);
    size_t count() const;
+   unsigned int* data();
+   unsigned int operator[](size_t i);
 protected:
    unsigned int* buf;
    size_t step;
@@ -57,6 +59,8 @@ public:
    unsigned int* uniforms_data;
    unsigned int* inouts_data;
    unsigned int* functions_data;
+   unsigned int* per_vertices_data;
+   unsigned int* per_vertices_data2;
    unsigned int* reflections_data;
 
    binary_buffer extensions;
@@ -66,6 +70,8 @@ public:
    binary_buffer uniforms;
    binary_buffer inouts;
    binary_buffer functions;
+   binary_buffer per_vertices;
+   binary_buffer per_vertices2;
    binary_buffer reflections;
 
    unsigned int precision_float;
@@ -73,14 +79,20 @@ public:
 
    unsigned int id;
    unsigned int binding_id;
+   unsigned int binding_start_id;   // we use one global uniform block per shader for vulkan
 
    unsigned int import_id;
    unsigned int uniform_struct_id;
    unsigned int uniform_id;
    unsigned int uniform_pointer_id;
+   unsigned int uniform_var_id;
    unsigned int uniform_offset;
    unsigned int function_id;
    unsigned int main_id;
+
+   unsigned int per_vertex_id;
+   unsigned int out_position_id;
+   unsigned int gl_point_size;
 
    unsigned int void_id;
    unsigned int bool_id;
@@ -89,7 +101,17 @@ public:
    unsigned int const_float_id[16];
    unsigned int const_int_id[16];
 
-   GLenum shader_type;
+   unsigned int pointer_bool_id[12];
+   unsigned int pointer_float_id[12*4*4];
+   unsigned int pointer_int_id[12*4*4];
+   unsigned int pointer_sampler;
+
+   unsigned int input_loc;
+   unsigned int output_loc;
+
+   unsigned short descript_set_definition;
+
+   gl_shader_stage shader_stage;
 };
 
 /**
@@ -140,8 +162,10 @@ private:
     */
    unsigned int unique_name(ir_variable *var);
 
+   int unique_name_number;
    /** A mapping from ir_variable * -> unique printable names. */
    hash_table *printable_names;
+   _mesa_symbol_table *symbols;
 
    void *mem_ctx;
    spirv_buffer *f;
