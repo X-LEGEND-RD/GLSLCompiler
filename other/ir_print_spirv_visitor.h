@@ -42,7 +42,7 @@ public:
    void push(const char* text);
    unsigned int count();
    unsigned int* data();
-   unsigned int operator[](size_t i);
+   unsigned int operator[] (size_t i);
 protected:
    struct u_vector vector_buffer;
 };
@@ -52,17 +52,15 @@ public:
    spirv_buffer();
    ~spirv_buffer();
 
-   unsigned int* per_vertices_data;
-   unsigned int* per_vertices_data2;
    binary_buffer extensions;
    binary_buffer names;
    binary_buffer decorates;
    binary_buffer types;
    binary_buffer uniforms;
    binary_buffer inouts;
-   binary_buffer functions;
    binary_buffer per_vertices;
-   binary_buffer per_vertices2;
+   binary_buffer builtins;
+   binary_buffer functions;
    binary_buffer reflections;
 
    unsigned int precision_float;
@@ -76,13 +74,12 @@ public:
    unsigned int uniform_struct_id;
    unsigned int uniform_id;
    unsigned int uniform_pointer_id;
-   unsigned int uniform_var_id;
    unsigned int uniform_offset;
    unsigned int function_id;
    unsigned int main_id;
 
-   unsigned int per_vertex_id;
-   unsigned int out_position_id;
+   unsigned int gl_per_vertex_id;
+   unsigned int gl_position_id;
    unsigned int gl_point_size;
 
    unsigned int void_id;
@@ -143,6 +140,12 @@ public:
    virtual void visit(ir_end_primitive *);
    virtual void visit(ir_barrier *);
    /*@}*/
+
+protected:
+   unsigned int visit_type(const struct glsl_type *type);
+   char check_point_to_type(const struct glsl_type *type, unsigned int point_to);
+   unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode_index, unsigned int point_to);
+   void visit_value(ir_rvalue *ir);
 
 private:
    /**
