@@ -144,7 +144,7 @@ public:
 protected:
    unsigned int visit_type(const struct glsl_type *type);
    char check_point_to_type(const struct glsl_type *type, unsigned int point_to);
-   unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode_index, unsigned int point_to);
+   unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int point_to);
    void visit_value(ir_rvalue *ir);
 
 private:
