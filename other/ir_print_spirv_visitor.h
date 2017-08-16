@@ -88,11 +88,12 @@ public:
    unsigned int int_id[4*4];
    unsigned int const_float_id[16];
    unsigned int const_int_id[16];
+   unsigned int sampler_id[GLSL_SAMPLER_DIM_SUBPASS_MS + 1];
 
    unsigned int pointer_bool_id[12];
    unsigned int pointer_float_id[12*4*4];
    unsigned int pointer_int_id[12*4*4];
-   unsigned int pointer_sampler;
+   unsigned int pointer_sampler[GLSL_SAMPLER_DIM_SUBPASS_MS + 1];
 
    unsigned int input_loc;
    unsigned int output_loc;
@@ -141,11 +142,13 @@ public:
    virtual void visit(ir_barrier *);
    /*@}*/
 
-protected:
+public:
    unsigned int visit_type(const struct glsl_type *type);
    char check_point_to_type(const struct glsl_type *type, unsigned int point_to);
    unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode_index, unsigned int point_to);
    void visit_value(ir_rvalue *ir);
+   unsigned int visit_sampler_type(glsl_sampler_dim sampler_dim);
+   unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
 
 private:
    /**
@@ -156,9 +159,12 @@ private:
     */
    unsigned int unique_name(ir_variable *var);
 
+   bool is_unique_name_exist(ir_variable *var);
+
    int unique_name_number;
    /** A mapping from ir_variable * -> unique printable names. */
    hash_table *printable_names;
+   hash_table *sampler_vars;
    _mesa_symbol_table *symbols;
 
    void *mem_ctx;
