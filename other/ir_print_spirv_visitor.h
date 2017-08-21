@@ -55,6 +55,8 @@ public:
    binary_buffer extensions;
    binary_buffer names;
    binary_buffer decorates;
+   binary_buffer function_begin;
+   binary_buffer function_end;
    binary_buffer types;
    binary_buffer uniforms;
    binary_buffer inouts;
@@ -149,6 +151,7 @@ public:
    void visit_value(ir_rvalue *ir);
    unsigned int visit_sampler_type(glsl_sampler_dim sampler_dim);
    unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
+   void visit_precision(unsigned int id, unsigned int type, unsigned int precision);
 
 private:
    /**
