@@ -70,7 +70,7 @@ public:
 
    unsigned int id;
    unsigned int binding_id;
-   unsigned int binding_start_id;   // we use one global uniform block per shader for vulkan
+   unsigned int binding_start_id;
 
    unsigned int import_id;
    unsigned int uniform_struct_id;
@@ -81,8 +81,6 @@ public:
    unsigned int main_id;
 
    unsigned int gl_per_vertex_id;
-   unsigned int gl_position_id;
-   unsigned int gl_point_size;
 
    unsigned int void_id;
    unsigned int bool_id;
@@ -90,12 +88,12 @@ public:
    unsigned int int_id[4*4];
    unsigned int const_float_id[16];
    unsigned int const_int_id[16];
-   unsigned int sampler_id[GLSL_SAMPLER_DIM_SUBPASS_MS + 1];
+   unsigned int sampler_id[16];
 
    unsigned int pointer_bool_id[12];
    unsigned int pointer_float_id[12*4*4];
    unsigned int pointer_int_id[12*4*4];
-   unsigned int pointer_sampler[GLSL_SAMPLER_DIM_SUBPASS_MS + 1];
+   unsigned int pointer_sampler_id[16];
 
    unsigned int input_loc;
    unsigned int output_loc;
@@ -149,9 +147,9 @@ public:
    char check_point_to_type(const struct glsl_type *type, unsigned int point_to);
    unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int point_to);
    void visit_value(ir_rvalue *ir);
-   unsigned int visit_sampler_type(glsl_sampler_dim sampler_dim);
-   unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
    void visit_precision(unsigned int id, unsigned int type, unsigned int precision);
+   bool is_unique_name_exist(ir_variable *var);
+   unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
 
 private:
    /**
@@ -161,8 +159,6 @@ private:
     * fine until we try to print it, when we really need a unique one.
     */
    unsigned int unique_name(ir_variable *var);
-
-   bool is_unique_name_exist(ir_variable *var);
 
    int unique_name_number;
    /** A mapping from ir_variable * -> unique printable names. */
@@ -175,5 +171,10 @@ private:
 
    int indentation;
 };
+
+extern "C" {
+void
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding);
+}
 
 #endif /* IR_PRINT_SPIRV_VISITOR_H */
