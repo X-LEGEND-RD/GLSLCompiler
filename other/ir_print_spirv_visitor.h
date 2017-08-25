@@ -64,6 +64,9 @@ public:
    binary_buffer builtins;
    binary_buffer functions;
    binary_buffer reflections;
+   binary_buffer structures;
+   binary_buffer structures_member_type;
+   binary_buffer shaderstorage;
 
    unsigned int precision_float;
    unsigned int precision_int;
@@ -79,6 +82,8 @@ public:
    unsigned int uniform_offset;
    unsigned int function_id;
    unsigned int main_id;
+   unsigned int main_function_id;
+   unsigned int main_label_id;
 
    unsigned int gl_per_vertex_id;
 
@@ -101,6 +106,31 @@ public:
    unsigned short descript_set_definition;
 
    gl_shader_stage shader_stage;
+};
+
+struct struct_type : public exec_node
+{
+   binary_buffer member_types;
+   unsigned int type_id;
+   unsigned int type_pointer_id;
+   unsigned int var_id;
+
+   struct_type()
+      :type_id(0)
+      ,type_pointer_id(0)
+      ,var_id(0)
+   {};
+};
+
+struct array_type : public exec_node
+{
+    unsigned int type_id;
+    unsigned int stride_size;
+
+    array_type()
+       :type_id(0)
+       ,stride_size(0)
+    {};
 };
 
 /**
@@ -150,6 +180,9 @@ public:
    void visit_precision(unsigned int id, unsigned int type, unsigned int precision);
    bool is_unique_name_exist(ir_variable *var);
    unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
+   struct struct_type *get_struct_types(const glsl_type *);
+   struct struct_type *visit_struct(const glsl_type *);
+   struct array_type *visit_array_type(const glsl_type *);
 
 private:
    /**
@@ -164,6 +197,8 @@ private:
    /** A mapping from ir_variable * -> unique printable names. */
    hash_table *printable_names;
    hash_table *sampler_vars;
+   hash_table *struct_types;
+   hash_table *array_types;
    _mesa_symbol_table *symbols;
 
    void *mem_ctx;
@@ -174,7 +209,7 @@ private:
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding);
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state *state, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding);
 }
 
 #endif /* IR_PRINT_SPIRV_VISITOR_H */

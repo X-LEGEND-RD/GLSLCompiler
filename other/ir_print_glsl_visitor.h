@@ -87,6 +87,7 @@ public:
    virtual void visit(ir_barrier *);
    /*@}*/
 
+   virtual void visit_struct(const glsl_type *);
 private:
    /**
     * Fetch/generate a unique name for ir_variable.

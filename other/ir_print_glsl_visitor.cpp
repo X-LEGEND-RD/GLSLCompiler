@@ -114,8 +114,14 @@ _mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_
 #undef EXT
    }
 
+   ir_print_glsl_visitor v(buf, state);
+   // custom structure
+   for (unsigned i = 0; i < state->num_user_structures; i++) {
+      const glsl_type *const s = state->user_structures [i];
+      v.visit_struct(s);
+   }
+
    foreach_in_list(ir_instruction, ir, instructions) {
-      ir_print_glsl_visitor v(buf, state);
       size_t offset = buf->offset();
       ir->accept(&v);
       if (offset == buf->offset())
@@ -191,8 +197,10 @@ static void
 print_type(string_buffer *buf, const glsl_type *t, unsigned int version)
 {
    if (t->base_type == GLSL_TYPE_ARRAY) {
-      print_type(buf, t->fields.array, version);
-      buf->printf("[%u]", t->length);
+      if (t->length) {
+         print_type(buf, t->fields.array, version);
+         buf->printf("[%u]", t->length);
+      }
    } else if ((t->base_type == GLSL_TYPE_STRUCT) && !is_gl_identifier(t->name)) {
       buf->printf("%s_%p", t->name, (void *) t);
    } else if ((t->base_type == GLSL_TYPE_UINT) && version <= 120) {
@@ -222,6 +230,27 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const mode[] = { "", "uniform ", "", "", "varying ", "out ", "in ", "out ", "inout ", "", "", "" };
          buf->printf("%s", mode[ir->data.mode]);
       }
+   } else if (ir->data.mode == ir_var_shader_storage) {
+       const glsl_type* interface_type = ir->get_interface_type();
+      buf->printf("layout(std430, binding = 0) buffer %s\n{\n", interface_type->name);
+      for (unsigned j = 0; j < interface_type->length; j++) {
+         const glsl_type* member = interface_type->fields.structure[j].type;
+         if (member->base_type == GLSL_TYPE_ARRAY) {
+            char array_desc_name[64] = {};
+            const char* desc_name = member->name;
+            char char_code = *desc_name++;
+            unsigned int index = 0;
+            while (char_code && (char_code != '[') && index < sizeof(array_desc_name)) {
+                array_desc_name[index++] = char_code;
+                char_code = *desc_name++;
+            }
+            buf->printf ("    %s %s[ ];\n", array_desc_name, interface_type->fields.structure[j].name);
+         } else {
+            buf->printf("    %s %s;\n", member->name, interface_type->fields.structure[j].name);
+         }
+      }
+      buf->printf("}");
+      return;
    } else {
       const char *const mode[] = { "", "uniform ", "", "", "in ", "out ", "in ", "out ", "inout ", "", "", "" };
       buf->printf("%s", mode[ir->data.mode]);
@@ -413,6 +442,7 @@ static const char *const operator_glsl_strs[] = {
    "vector_extract",
    "interpolate_at_offset",
    "interpolate_at_sample",
+   "read_invocation",
    "fma",
    "mix",
    "csel",
@@ -444,7 +474,7 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
 
 void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
-   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode);
+   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode + 1);
 
    if (ir->get_num_operands() == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
@@ -504,6 +534,31 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
       if (ir->operands[1])
           ir->operands[1]->accept(this);
       buf->printf(")");
+   }
+   else if (ir->operation == ir_triop_fma)
+   {
+      // ternary op
+      buf->printf("%s(", operator_glsl_strs[ir->operation]);
+      for (unsigned int i = 0; i < 3; ++i) {
+         if (ir->operands[i]) {
+            const unsigned int comp_count = ir->type->components();
+            const unsigned int sub_comp_count = ir->operands[i]->type->components();
+            bool need_match_type = ((sub_comp_count == 1) && (comp_count > 1));
+            if (need_match_type) {
+               buf->printf("vec%d(", comp_count);
+            }
+            ir->operands[i]->accept(this);
+            if (need_match_type)
+            {
+                buf->printf(")");
+            }
+         }
+         if (i != 2) {
+            buf->printf(", ");
+         } else {
+            buf->printf(")");
+         }
+      }
    }
    else
    {
@@ -870,4 +925,15 @@ void
 ir_print_glsl_visitor::visit(ir_barrier *)
 {
    buf->printf("(barrier)\n");
+}
+
+void
+ir_print_glsl_visitor::visit_struct(const glsl_type *type)
+{
+   buf->printf("struct %s\n{\n", type->name);
+   for (unsigned j = 0; j < type->length; j++) {
+       const glsl_type* member = type->fields.structure[j].type;
+       buf->printf("    %s %s;\n", member->name, type->fields.structure[j].name);
+   }
+   buf->printf("};\n");
 }
