@@ -65,7 +65,6 @@ public:
    binary_buffer functions;
    binary_buffer reflections;
    binary_buffer structures;
-   binary_buffer structures_member_type;
    binary_buffer shaderstorage;
 
    unsigned int precision_float;

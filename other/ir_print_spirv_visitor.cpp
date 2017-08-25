@@ -480,14 +480,14 @@ struct_type *ir_print_spirv_visitor::visit_struct(const glsl_type *type)
       unsigned int count = (len + sizeof (int)) / sizeof (int);
       f->names.push(SpvOpMemberName | ((count + 3) << SpvWordCountShift));
       f->names.push(st_type->type_id);
-      f->names.push(f->structures_member_type.count());
+      f->names.push(st_type->member_types.count());
       f->names.push(type->fields.structure[j].name);
 
       unsigned int base_alignment = member->std430_base_alignment(false);
       struct_offset = (struct_offset + base_alignment - 1) & ~(base_alignment - 1);
       f->decorates.push(SpvOpMemberDecorate | (5 << SpvWordCountShift));
       f->decorates.push(st_type->type_id);
-      f->decorates.push(f->structures_member_type.count());
+      f->decorates.push(st_type->member_types.count());
       f->decorates.push(SpvDecorationOffset);
       f->decorates.push(struct_offset);
       st_type->member_types.push(type_id);
