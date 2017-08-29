@@ -144,6 +144,8 @@ ir_print_glsl_visitor::ir_print_glsl_visitor(string_buffer *buf, struct _mesa_gl
    unique_name_number = 0;
    printable_names =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
+   ubo_names = 
+      _mesa_hash_table_create(NULL, _mesa_key_hash_string, _mesa_key_string_equal);
    symbols = _mesa_symbol_table_ctor();
    mem_ctx = ralloc_context(NULL);
 }
@@ -151,6 +153,7 @@ ir_print_glsl_visitor::ir_print_glsl_visitor(string_buffer *buf, struct _mesa_gl
 ir_print_glsl_visitor::~ir_print_glsl_visitor()
 {
    _mesa_hash_table_destroy(printable_names, NULL);
+   _mesa_hash_table_destroy(ubo_names, NULL);
    _mesa_symbol_table_dtor(symbols);
    ralloc_free(mem_ctx);
 }
@@ -193,6 +196,39 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
    return name;
 }
 
+bool 
+ir_print_glsl_visitor::is_ubo_exist(ir_variable *var)
+{
+   if (var->data.mode != ir_var_uniform)
+      return false;
+   const glsl_type *type = var->get_interface_type();
+   if (type == NULL)
+      return true;
+   struct hash_entry * entry =
+      _mesa_hash_table_search(this->ubo_names, type->name);
+
+   if (entry != NULL) {
+      return true;
+   }
+   return false;
+}
+
+void 
+ir_print_glsl_visitor::reg_ubo(ir_variable *var)
+{
+   if (var->data.mode != ir_var_uniform)
+      return;
+   const glsl_type *type = var->get_interface_type();
+   struct hash_entry * entry =
+      _mesa_hash_table_search(this->ubo_names, type->name);
+
+   if (entry != NULL) {
+      return;
+   }
+
+   _mesa_hash_table_insert(ubo_names, type->name, var);
+}
+
 static void
 print_type(string_buffer *buf, const glsl_type *t, unsigned int version)
 {
@@ -230,9 +266,59 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const mode[] = { "", "uniform ", "", "", "varying ", "out ", "in ", "out ", "inout ", "", "", "" };
          buf->printf("%s", mode[ir->data.mode]);
       }
+   } else if (ir->data.mode == ir_var_shader_in || ir->data.mode == ir_var_shader_out) {
+      if (state->stage == MESA_SHADER_VERTEX) {
+         const char *const in_mode = (state->language_version >= 410) ? "in " : "attribute ";
+         const char *const out_mode = (state->language_version >= 410) ? "out " : "varying ";
+         const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
+         if (state->language_version >= 410) {
+            unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - VARYING_SLOT_VAR0 - 1 : ir->data.location - VERT_ATTRIB_GENERIC0;
+            buf->printf("layout (location = %d) %s", location, mode);
+         } else {
+            buf->printf("%s", mode);
+         }
+      } else if (state->stage == MESA_SHADER_FRAGMENT) {
+         const char *const in_mode = (state->language_version >= 410) ? "in " : "varying ";
+         const char *const out_mode = "out ";
+         const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
+         unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - FRAG_RESULT_DATA0 : ir->data.location - VARYING_SLOT_VAR0 - 1;
+         if (state->language_version >= 410) {
+            buf->printf("layout (location = %d) %s", location, mode);
+         } else {
+            buf->printf("%s", mode);
+         }
+      }
+   } else if ((ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
+      if (is_ubo_exist(ir))
+          return;
+      reg_ubo(ir);
+      const glsl_type* interface_type = ir->get_interface_type();
+      buf->printf("layout(set = 0, binding = %d) uniform %s\n{\n", ir->data.binding, interface_type->name);
+      for (unsigned j = 0; j < interface_type->length; j++) {
+         const glsl_type* member = interface_type->fields.structure[j].type;
+         if (member->base_type == GLSL_TYPE_ARRAY) {
+            char array_desc_name[64] = {};
+            const char* desc_name = member->name;
+            char char_code = *desc_name++;
+            unsigned int index = 0;
+            while (char_code && (char_code != '[') && index < sizeof(array_desc_name)) {
+                array_desc_name[index++] = char_code;
+                char_code = *desc_name++;
+            }
+            if (member->length != 0) {
+               buf->printf ("    %s %s[%d];\n", array_desc_name, interface_type->fields.structure[j].name, member->length);
+            } else {
+               buf->printf ("    %s %s[ ];\n", array_desc_name, interface_type->fields.structure[j].name);
+            }
+         } else {
+            buf->printf("    %s %s;\n", member->name, interface_type->fields.structure[j].name);
+         }
+      }
+      buf->printf("}");
+      return;
    } else if (ir->data.mode == ir_var_shader_storage) {
-       const glsl_type* interface_type = ir->get_interface_type();
-      buf->printf("layout(std430, binding = 0) buffer %s\n{\n", interface_type->name);
+      const glsl_type* interface_type = ir->get_interface_type();
+      buf->printf("layout(std430, binding = %d) buffer %s\n{\n", ir->data.binding, interface_type->name);
       for (unsigned j = 0; j < interface_type->length; j++) {
          const glsl_type* member = interface_type->fields.structure[j].type;
          if (member->base_type == GLSL_TYPE_ARRAY) {
@@ -253,7 +339,11 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
       return;
    } else {
       const char *const mode[] = { "", "uniform ", "", "", "in ", "out ", "in ", "out ", "inout ", "", "", "" };
-      buf->printf("%s", mode[ir->data.mode]);
+      if (ir->type->is_sampler() && state->language_version > 410) {
+         buf->printf("layout (binding = %d) %s", ir->data.binding, mode[ir->data.mode]);
+      } else {
+         buf->printf("%s", mode[ir->data.mode]);
+      }
    }
    int default_precision = GLSL_PRECISION_NONE;
    if (state->es_shader)

@@ -124,12 +124,15 @@ struct struct_type : public exec_node
 struct array_type : public exec_node
 {
     unsigned int type_id;
+    unsigned int type_pointer_id[ir_var_mode_count];
     unsigned int stride_size;
 
     array_type()
        :type_id(0)
        ,stride_size(0)
-    {};
+    {
+        memset(type_pointer_id, 0, sizeof(type_pointer_id));
+    };
 };
 
 /**
@@ -181,7 +184,7 @@ public:
    unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
    struct struct_type *get_struct_types(const glsl_type *);
    struct struct_type *visit_struct(const glsl_type *);
-   struct array_type *visit_array_type(const glsl_type *);
+   struct array_type *visit_array_type(const glsl_type *, unsigned int mode = ir_var_auto);
 
 private:
    /**
