@@ -490,6 +490,7 @@ struct_type *ir_print_spirv_visitor::visit_struct(const glsl_type *type)
       f->decorates.push(st_type->member_types.count());
       f->decorates.push(SpvDecorationOffset);
       f->decorates.push(struct_offset);
+      struct_offset += member->std430_size(false);
       st_type->member_types.push(type_id);
    }
 
