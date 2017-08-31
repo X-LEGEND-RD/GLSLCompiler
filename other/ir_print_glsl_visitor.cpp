@@ -258,6 +258,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
    if (ir->type->base_type == GLSL_TYPE_VOID)
       return;
 
+   const glsl_type* interface_type = ir->get_interface_type();
    if (state->language_version <= 120) {
       if (state->stage == MESA_SHADER_VERTEX) {
          const char *const mode[] = { "", "uniform ", "", "", "attribute ", "varying ", "in ", "out ", "inout ", "", "", "" };
@@ -288,11 +289,10 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
             buf->printf("%s", mode);
          }
       }
-   } else if ((ir->type->is_interface()) && (ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
+   } else if ((interface_type != NULL) && (ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
       if (is_ubo_exist(ir))
           return;
       reg_ubo(ir);
-      const glsl_type* interface_type = ir->get_interface_type();
       buf->printf("layout(set = 0, binding = %d) uniform %s\n{\n", ir->data.binding, interface_type->name);
       for (unsigned j = 0; j < interface_type->length; j++) {
          const glsl_type* member = interface_type->fields.structure[j].type;
