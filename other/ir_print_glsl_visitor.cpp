@@ -266,7 +266,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const mode[] = { "", "uniform ", "", "", "varying ", "out ", "in ", "out ", "inout ", "", "", "" };
          buf->printf("%s", mode[ir->data.mode]);
       }
-   } else if (ir->data.mode == ir_var_shader_in || ir->data.mode == ir_var_shader_out) {
+   } else if ((ir->data.mode == ir_var_shader_in || ir->data.mode == ir_var_shader_out) && (ir->data.location != -1)) {
       if (state->stage == MESA_SHADER_VERTEX) {
          const char *const in_mode = (state->language_version >= 410) ? "in " : "attribute ";
          const char *const out_mode = (state->language_version >= 410) ? "out " : "varying ";
@@ -288,7 +288,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
             buf->printf("%s", mode);
          }
       }
-   } else if ((ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
+   } else if ((ir->type->is_interface()) && (ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
       if (is_ubo_exist(ir))
           return;
       reg_ubo(ir);
