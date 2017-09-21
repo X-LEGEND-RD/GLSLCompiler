@@ -272,7 +272,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const in_mode = (state->language_version >= 410) ? "in " : "attribute ";
          const char *const out_mode = (state->language_version >= 410) ? "out " : "varying ";
          const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
-         if (state->language_version >= 410) {
+         if (state->has_vulkan_glsl()) {
             unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - VARYING_SLOT_VAR0 - 1 : ir->data.location - VERT_ATTRIB_GENERIC0;
             buf->printf("layout (location = %d) %s", location, mode);
          } else {
@@ -283,7 +283,7 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const out_mode = "out ";
          const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
          unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - FRAG_RESULT_DATA0 : ir->data.location - VARYING_SLOT_VAR0 - 1;
-         if (state->language_version >= 410) {
+         if (state->has_vulkan_glsl()) {
             buf->printf("layout (location = %d) %s", location, mode);
          } else {
             buf->printf("%s", mode);
