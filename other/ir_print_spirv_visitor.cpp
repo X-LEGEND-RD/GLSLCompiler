@@ -120,10 +120,9 @@ spirv_buffer::~spirv_buffer()
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state *state, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding)
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state *state, gl_shader_stage stage, unsigned version, bool es)
 {
    f->id = 1;
-   f->binding_id = uniform_start_binding;
    f->binding_start_id = -1;
    f->import_id = 0;
    f->uniform_struct_id = 0;
@@ -149,7 +148,6 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_pa
    f->shader_stage = stage;
    f->input_loc = 0;
    f->output_loc = 0;
-   f->descript_set_definition = descript_set_def;
 
    if (es) {
       if (stage == MESA_SHADER_FRAGMENT) {
@@ -457,7 +455,8 @@ struct_type *ir_print_spirv_visitor::visit_struct(const glsl_type *type)
       f->reflections.push(0u);
       f->reflections.push(0u);
       f->reflections.push(0u);
-      f->reflections.push(f->binding_id++);
+      f->reflections.push(0u);
+      f->reflections.push(0u);
    }
    // forward declared
    for (unsigned j = 0; j < type->length; j++) {
@@ -870,12 +869,12 @@ unsigned int ir_print_spirv_visitor::visit_sampler_variable(ir_variable *ir_var,
       f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
       f->decorates.push(name_id);
       f->decorates.push(SpvDecorationDescriptorSet);
-      f->decorates.push(f->descript_set_definition);
+      f->decorates.push(ir_var->data.set);
       
       f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
       f->decorates.push(name_id);
       f->decorates.push(SpvDecorationBinding);
-      f->decorates.push(f->binding_id++);
+      f->decorates.push(ir_var->data.binding);
       
       f->reflections.push(GL_SAMPLER);
       f->reflections.push(ir_var->name);
@@ -888,7 +887,8 @@ unsigned int ir_print_spirv_visitor::visit_sampler_variable(ir_variable *ir_var,
       }
       f->reflections.push(0u);
       f->reflections.push(0u);
-      f->reflections.push((f->binding_id - 1));
+      f->reflections.push(ir_var->data.binding);
+      f->reflections.push(ir_var->data.set);
    }
 
    struct hash_entry * entry =
@@ -922,7 +922,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          if (f->uniform_struct_id == 0) {
 
             f->binding_start_id = (f->binding_start_id == -1) ? f->binding_id++ : f->binding_start_id;
-            unsigned int current_binding_id = f->binding_start_id;
+            unsigned int current_binding_id = ir->data.binding;
             char block_name[64] = {};
             snprintf(block_name, sizeof(block_name), "Global%d", current_binding_id);
 
@@ -943,6 +943,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->reflections.push(0u);
             f->reflections.push(0u);
             f->reflections.push(current_binding_id);
+            f->reflections.push(ir->data.set);
          }
 
          if (f->uniform_id == 0) {
@@ -959,12 +960,12 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
             f->decorates.push(f->uniform_id);
             f->decorates.push(SpvDecorationDescriptorSet);
-            f->decorates.push(f->descript_set_definition);
+            f->decorates.push(ir->data.set);
 
             f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
             f->decorates.push(f->uniform_id);
             f->decorates.push(SpvDecorationBinding);
-            f->decorates.push((f->binding_id - 1));
+            f->decorates.push(ir->data.binding);
          }
 
          unsigned int len = (int)strlen(ir->name);
@@ -1013,7 +1014,8 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          unsigned int current_size = ir->type->std430_size(false);
          f->reflections.push(f->uniform_offset);
          f->reflections.push(current_size);
-         f->reflections.push(f->binding_start_id);
+         f->reflections.push(ir->data.binding);
+         f->reflections.push(ir->data.set);
          f->uniform_offset += current_size;
       }
 
@@ -1027,12 +1029,12 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
       f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
       f->decorates.push(empty_id);
       f->decorates.push(SpvDecorationDescriptorSet);
-      f->decorates.push(f->descript_set_definition);
+      f->decorates.push(ir->data.set);
 
       f->decorates.push(SpvOpDecorate | (4 << SpvWordCountShift));
       f->decorates.push(empty_id);
       f->decorates.push(SpvDecorationBinding);
-      f->decorates.push(f->binding_id - 1);
+      f->decorates.push(ir->data.binding);
    } else {
 
       unsigned int pointer_id = visit_type_pointer(ir->type, ir->data.mode, type_id);
@@ -1071,6 +1073,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          f->reflections.push(0u);
          f->reflections.push(current_size);
          f->reflections.push((ir->data.mode == ir_var_shader_in) ? (f->input_loc - 1) : (f->output_loc - 1));
+         f->reflections.push(0u);
       }
    }
 }

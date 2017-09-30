@@ -293,7 +293,13 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
       if (is_ubo_exist(ir))
           return;
       reg_ubo(ir);
-      buf->printf("layout(set = 0, binding = %d) uniform %s\n{\n", ir->data.binding, interface_type->name);
+      if (state->has_vulkan_glsl() && (ir->data.explicit_binding || ir->data.set)) {
+        buf->printf("layout(set = %d, binding = %d) uniform %s\n{\n", ir->data.set, ir->data.binding, interface_type->name);
+      } else if (state->has_420pack_or_es31()) {
+        buf->printf("layout(binding = %d) uniform %s\n{\n", ir->data.binding, interface_type->name);
+      } else {
+        buf->printf("uniform %s\n{\n", interface_type->name);
+      }
       for (unsigned j = 0; j < interface_type->length; j++) {
          const glsl_type* member = interface_type->fields.structure[j].type;
          if (member->base_type == GLSL_TYPE_ARRAY) {
@@ -318,7 +324,13 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
       return;
    } else if (ir->data.mode == ir_var_shader_storage) {
       const glsl_type* interface_type = ir->get_interface_type();
-      buf->printf("layout(std430, binding = %d) buffer %s\n{\n", ir->data.binding, interface_type->name);
+      if (state->has_vulkan_glsl() && (ir->data.explicit_binding || ir->data.set)) {
+         buf->printf("layout(std430, set = %d, binding = %d) buffer %s\n{\n", ir->data.set, ir->data.binding, interface_type->name);
+      } else if (state->has_shader_storage_buffer_objects()) {
+         buf->printf("layout(std430, binding = %d) buffer %s\n{\n", ir->data.binding, interface_type->name);
+      } else {
+          return;
+      }
       for (unsigned j = 0; j < interface_type->length; j++) {
          const glsl_type* member = interface_type->fields.structure[j].type;
          if (member->base_type == GLSL_TYPE_ARRAY) {
@@ -339,8 +351,14 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
       return;
    } else {
       const char *const mode[] = { "", "uniform ", "", "", "in ", "out ", "in ", "out ", "inout ", "", "", "" };
-      if (ir->type->is_sampler() && state->language_version > 410) {
-         buf->printf("layout (binding = %d) %s", ir->data.binding, mode[ir->data.mode]);
+      if (ir->type->is_sampler()) {
+         if (state->has_vulkan_glsl()) {
+            buf->printf("layout (set = %d, binding = %d) %s", ir->data.set, ir->data.binding, mode[ir->data.mode]);
+         } else if (state->has_420pack_or_es31() && ir->data.explicit_binding) {
+            buf->printf("layout (binding = %d) %s", ir->data.binding, mode[ir->data.mode]);
+         } else {
+            buf->printf("%s", mode[ir->data.mode]);
+         }
       } else {
          buf->printf("%s", mode[ir->data.mode]);
       }
