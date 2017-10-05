@@ -72,7 +72,6 @@ public:
 
    unsigned int id;
    unsigned int binding_id;
-   unsigned int binding_start_id;
 
    unsigned int import_id;
    unsigned int uniform_struct_id;
@@ -109,16 +108,18 @@ public:
 
 struct struct_type : public exec_node
 {
+   hash_table *member_index;
    binary_buffer member_types;
    unsigned int type_id;
    unsigned int type_pointer_id;
    unsigned int var_id;
+   unsigned int binding;
+   unsigned int set;
 
-   struct_type()
-      :type_id(0)
-      ,type_pointer_id(0)
-      ,var_id(0)
-   {};
+   struct_type();
+   virtual ~struct_type();
+   void set_member(const char* name, unsigned int index);
+   unsigned int get_member_index(const char* name);
 };
 
 struct array_type : public exec_node
@@ -183,7 +184,7 @@ public:
    bool is_unique_name_exist(ir_variable *var);
    unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
    struct struct_type *get_struct_types(const glsl_type *);
-   struct struct_type *visit_struct(const glsl_type *);
+   struct struct_type *visit_struct(const glsl_type *, unsigned int mode, unsigned int binding = 0, unsigned int set = 0);
    struct array_type *visit_array_type(const glsl_type *, unsigned int mode = ir_var_auto);
 
 private:
