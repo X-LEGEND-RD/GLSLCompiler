@@ -111,7 +111,7 @@ unsigned int* binary_buffer::data()
    return (unsigned int*)u_vector_tail(&vector_buffer);
 }
 
-unsigned int binary_buffer::operator[] (size_t i)
+unsigned int& binary_buffer::operator[] (size_t i)
 {
    return data()[i];
 }
@@ -126,11 +126,10 @@ spirv_buffer::~spirv_buffer()
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding)
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned binding)
 {
    f->id = 1;
-   f->binding_id = uniform_start_binding;
-   f->binding_start_id = -1;
+   f->binding_id = binding;
    f->import_id = 0;
    f->uniform_struct_id = 0;
    f->uniform_id = 0;
@@ -153,7 +152,6 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->shader_stage = stage;
    f->input_loc = 0;
    f->output_loc = 0;
-   f->descript_set_definition = descript_set_def;
 
    if (es) {
       if (stage == MESA_SHADER_FRAGMENT) {
@@ -308,8 +306,6 @@ ir_print_spirv_visitor::ir_print_spirv_visitor(spirv_buffer *f)
    unique_name_number = 0;
    printable_names =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-   sampler_vars = 
-      _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
    symbols = _mesa_symbol_table_ctor();
    mem_ctx = ralloc_context(NULL);
 }
@@ -317,7 +313,6 @@ ir_print_spirv_visitor::ir_print_spirv_visitor(spirv_buffer *f)
 ir_print_spirv_visitor::~ir_print_spirv_visitor()
 {
    _mesa_hash_table_destroy(printable_names, NULL);
-   _mesa_hash_table_destroy(sampler_vars, NULL);
    _mesa_symbol_table_dtor(symbols);
    ralloc_free(mem_ctx);
 }
@@ -654,50 +649,6 @@ void ir_print_spirv_visitor::visit_precision(unsigned int id, unsigned int type,
    }
 }
 
-unsigned int ir_print_spirv_visitor::visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type)
-{
-   if (is_unique_name_exist(ir_var) == false) {
-      unsigned int name_id = unique_name(ir_var);
-      unsigned int binding_id = f->binding_id++;
-
-      f->decorates.push(SpvOpDecorate, 4);
-      f->decorates.push(name_id);
-      f->decorates.push(SpvDecorationDescriptorSet);
-      f->decorates.push(f->descript_set_definition);
-      
-      f->decorates.push(SpvOpDecorate, 4);
-      f->decorates.push(name_id);
-      f->decorates.push(SpvDecorationBinding);
-      f->decorates.push(binding_id);
-      
-      f->reflections.push(GL_SAMPLER);
-      f->reflections.push(ir_var->name);
-      switch (ir_var->type->sampler_dimensionality) {
-         case GLSL_SAMPLER_DIM_1D:        f->reflections.push(GL_SAMPLER_1D);    break;
-         case GLSL_SAMPLER_DIM_2D:        f->reflections.push(GL_SAMPLER_2D);    break;
-         case GLSL_SAMPLER_DIM_3D:        f->reflections.push(GL_SAMPLER_3D);    break;
-         case GLSL_SAMPLER_DIM_CUBE:      f->reflections.push(GL_SAMPLER_CUBE);  break;
-      }
-      f->reflections.push(0u);
-      f->reflections.push(0u);
-      f->reflections.push(binding_id);
-   }
-
-   struct hash_entry * entry =
-      _mesa_hash_table_search(this->sampler_vars, ir_var);
-
-   if (entry != NULL) {
-      return (unsigned int)(intptr_t)entry->data;
-   }
-
-   f->types.push(SpvOpVariable, 4);
-   f->types.push(pointer_type);
-   f->types.push(ir_var->ir_pointer);
-   f->types.push(SpvStorageClassUniformConstant);
-   _mesa_hash_table_insert(this->sampler_vars, ir_var, (void *)(intptr_t)ir_var->ir_pointer);
-   return ir_var->ir_pointer;
-}
-
 void ir_print_spirv_visitor::visit(ir_variable *ir)
 {
    if (is_gl_identifier(ir->name))
@@ -713,10 +664,9 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
 
          if (f->uniform_struct_id == 0) {
 
-            f->binding_start_id = (f->binding_start_id == -1) ? f->binding_id++ : f->binding_start_id;
-            unsigned int current_binding_id = f->binding_start_id;
+            unsigned int binding_id = f->binding_id++;
             char block_name[64] = {};
-            snprintf(block_name, sizeof(block_name), "Global%d", current_binding_id);
+            snprintf(block_name, sizeof(block_name), "Global%d", binding_id);
 
             f->uniform_struct_id = f->id++;
             unsigned int len = (int)strlen(block_name);
@@ -728,13 +678,6 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.push(SpvOpDecorate, 3);
             f->decorates.push(f->uniform_struct_id);
             f->decorates.push(SpvDecorationBlock);
-
-            f->reflections.push(GL_UNIFORM_BLOCK);
-            f->reflections.push(block_name);
-            f->reflections.push(0u);
-            f->reflections.push(0u);
-            f->reflections.push(0u);
-            f->reflections.push(current_binding_id);
          }
 
          if (f->uniform_id == 0) {
@@ -751,7 +694,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.push(SpvOpDecorate, 4);
             f->decorates.push(f->uniform_id);
             f->decorates.push(SpvDecorationDescriptorSet);
-            f->decorates.push(f->descript_set_definition);
+            f->decorates.push(0u);
 
             f->decorates.push(SpvOpDecorate, 4);
             f->decorates.push(f->uniform_id);
@@ -774,6 +717,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
          }
 
          unsigned int base_alignment = ir->type->std430_base_alignment(false);
+         unsigned int current_size = ir->type->std430_size(false);
          f->uniform_offset = (f->uniform_offset + base_alignment - 1) & ~(base_alignment - 1);
          f->decorates.push(SpvOpMemberDecorate, 5);
          f->decorates.push(f->uniform_struct_id);
@@ -789,23 +733,21 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.push(ir->type->vector_elements * 4);
          }
 
-         ir->ir_uniform = f->uniforms.count();
-
-         f->uniforms.push(type_id);
-         
-         f->binding_start_id = (f->binding_start_id == -1) ? f->binding_id++ : f->binding_start_id;
          f->reflections.push(GL_UNIFORM);
-         f->reflections.push(ir->name);
          const glsl_type* base_type = ir->type->is_array() ? ir->type->fields.array : ir->type;
          if (base_type->is_float()) {
             f->reflections.push(reflection_float_type[base_type->vector_elements - 1][base_type->matrix_columns - 1]);
          } else {
             f->reflections.push(reflection_int_type[base_type->vector_elements - 1]);
          }
-         unsigned int current_size = ir->type->std430_size(false);
          f->reflections.push(f->uniform_offset);
          f->reflections.push(current_size);
-         f->reflections.push(f->binding_start_id);
+         f->reflections.push(0u);
+         f->reflections.push(((int)strlen(ir->name) + sizeof(int)) / sizeof(int));
+         f->reflections.push(ir->name);
+
+         ir->ir_uniform = f->uniforms.count();
+         f->uniforms.push(type_id);
          f->uniform_offset += current_size;
       }
 
@@ -830,25 +772,50 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
       if (ir->data.mode == ir_var_shader_in || ir->data.mode == ir_var_shader_out) {
          f->inouts.push(name_id);
 
-         unsigned int loc_id = ir->data.mode == ir_var_shader_in ? f->input_loc++ : f->output_loc++;
+         unsigned int loc_id;
+         if (ir->data.explicit_location) {
+            switch (f->shader_stage) {
+            case MESA_SHADER_VERTEX:
+               loc_id = (ir->data.mode == ir_var_shader_in)
+                  ? (ir->data.location - VERT_ATTRIB_GENERIC0)
+                  : (ir->data.location - VARYING_SLOT_VAR0);
+               break;
+
+            case MESA_SHADER_FRAGMENT:
+               loc_id = (ir->data.mode == ir_var_shader_out)
+                  ? (ir->data.location - FRAG_RESULT_DATA0)
+                  : (ir->data.location - VARYING_SLOT_VAR0);
+               break;
+
+            default:
+               unreachable("Unexpected shader type");
+               break;
+            }
+         }
+         else {
+            loc_id = ir->data.mode == ir_var_shader_in ? f->input_loc++ : f->output_loc++;
+         }
 
          f->decorates.push(SpvOpDecorate, 4);
          f->decorates.push(name_id);
          f->decorates.push(SpvDecorationLocation);
          f->decorates.push(loc_id);
 
-         f->reflections.push(ir->data.mode == ir_var_shader_in ? GL_PROGRAM_INPUT : GL_PROGRAM_OUTPUT);
-         f->reflections.push(ir->name);
-         const glsl_type* base_type = ir->type->is_array() ? ir->type->fields.array : ir->type;
-         if (base_type->is_float()) {
-            f->reflections.push(reflection_float_type[base_type->vector_elements - 1][base_type->matrix_columns - 1]);
-         } else {
-            f->reflections.push(reflection_int_type[base_type->vector_elements - 1]);
+         if (f->shader_stage == MESA_SHADER_VERTEX && ir->data.mode == ir_var_shader_in) {
+            f->reflections.push(GL_PROGRAM_INPUT);
+            const glsl_type* base_type = ir->type->is_array() ? ir->type->fields.array : ir->type;
+            if (base_type->is_float()) {
+               f->reflections.push(reflection_float_type[base_type->vector_elements - 1][base_type->matrix_columns - 1]);
+            } else {
+               f->reflections.push(reflection_int_type[base_type->vector_elements - 1]);
+            }
+            unsigned int current_size = ir->type->std430_size(false);
+            f->reflections.push(0u);
+            f->reflections.push(current_size);
+            f->reflections.push(loc_id);
+            f->reflections.push(((int)strlen(ir->name) + sizeof(int)) / sizeof(int));
+            f->reflections.push(ir->name);
          }
-         unsigned int current_size = ir->type->std430_size(false);
-         f->reflections.push(0u);
-         f->reflections.push(current_size);
-         f->reflections.push(loc_id);
       }
    }
 }
@@ -1378,13 +1345,45 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          break;
       } else {
           unsigned int sampled_image_id = visit_type(var->type);
-          unsigned int type_pointer_id = visit_type_pointer(ir->type, var->data.mode, sampled_image_id);
+          if (var->ir_pointer == 0) {
+             unsigned int name_id = unique_name(var);
+             unsigned int binding_id = f->binding_id++;
+             unsigned int type_pointer_id = visit_type_pointer(ir->type, var->data.mode, sampled_image_id);
+
+             f->decorates.push(SpvOpDecorate, 4);
+             f->decorates.push(name_id);
+             f->decorates.push(SpvDecorationDescriptorSet);
+             f->decorates.push(0u);
+
+             f->decorates.push(SpvOpDecorate, 4);
+             f->decorates.push(name_id);
+             f->decorates.push(SpvDecorationBinding);
+             f->decorates.push(binding_id);
+
+             f->types.push(SpvOpVariable, 4);
+             f->types.push(type_pointer_id);
+             f->types.push(var->ir_pointer);
+             f->types.push(SpvStorageClassUniformConstant);
+
+             f->reflections.push(GL_SAMPLER);
+             switch (var->type->sampler_dimensionality) {
+                case GLSL_SAMPLER_DIM_1D:        f->reflections.push(GL_SAMPLER_1D);    break;
+                case GLSL_SAMPLER_DIM_2D:        f->reflections.push(GL_SAMPLER_2D);    break;
+                case GLSL_SAMPLER_DIM_3D:        f->reflections.push(GL_SAMPLER_3D);    break;
+                case GLSL_SAMPLER_DIM_CUBE:      f->reflections.push(GL_SAMPLER_CUBE);  break;
+             }
+             f->reflections.push(0u);
+             f->reflections.push(0u);
+             f->reflections.push(binding_id);
+             f->reflections.push(((int)strlen(var->name) + sizeof(int)) / sizeof(int));
+             f->reflections.push(var->name);
+          }
+
           unsigned int value_id = f->id++;
-          unsigned int pointer_id = visit_sampler_variable(var, type_pointer_id);
           f->functions.push(SpvOpLoad, 4);
           f->functions.push(sampled_image_id);
           f->functions.push(value_id);
-          f->functions.push(pointer_id);
+          f->functions.push(var->ir_pointer);
  
           ir->ir_value = value_id;
       }

@@ -43,7 +43,7 @@ public:
    void push(const char* text);
    unsigned int count();
    unsigned int* data();
-   unsigned int operator[] (size_t i);
+   unsigned int& operator[] (size_t i);
 protected:
    struct u_vector vector_buffer;
 };
@@ -56,8 +56,6 @@ public:
    binary_buffer extensions;
    binary_buffer names;
    binary_buffer decorates;
-   binary_buffer function_begin;
-   binary_buffer function_end;
    binary_buffer types;
    binary_buffer uniforms;
    binary_buffer inouts;
@@ -71,7 +69,6 @@ public:
 
    unsigned int id;
    unsigned int binding_id;
-   unsigned int binding_start_id;
 
    unsigned int import_id;
    unsigned int uniform_struct_id;
@@ -98,8 +95,6 @@ public:
 
    unsigned int input_loc;
    unsigned int output_loc;
-
-   unsigned short descript_set_definition;
 
    gl_shader_stage shader_stage;
 };
@@ -150,7 +145,6 @@ public:
    void visit_value(ir_rvalue *ir);
    void visit_precision(unsigned int id, unsigned int type, unsigned int precision);
    bool is_unique_name_exist(ir_variable *var);
-   unsigned int visit_sampler_variable(ir_variable *ir_var, unsigned int pointer_type);
 
 private:
    /**
@@ -164,7 +158,6 @@ private:
    int unique_name_number;
    /** A mapping from ir_variable * -> unique printable names. */
    hash_table *printable_names;
-   hash_table *sampler_vars;
    _mesa_symbol_table *symbols;
 
    void *mem_ctx;
@@ -175,7 +168,7 @@ private:
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned short descript_set_def, unsigned short uniform_start_binding);
+_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stage, unsigned version, bool es, unsigned binding);
 }
 
 #endif /* IR_PRINT_SPIRV_VISITOR_H */
