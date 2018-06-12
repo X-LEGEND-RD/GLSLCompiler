@@ -114,14 +114,8 @@ _mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_
 #undef EXT
    }
 
-   ir_print_glsl_visitor v(buf, state);
-   // custom structure
-   for (unsigned i = 0; i < state->num_user_structures; i++) {
-      const glsl_type *const s = state->user_structures [i];
-      v.visit_struct(s);
-   }
-
    foreach_in_list(ir_instruction, ir, instructions) {
+      ir_print_glsl_visitor v(buf, state);
       size_t offset = buf->offset();
       ir->accept(&v);
       if (offset == buf->offset())
@@ -144,8 +138,6 @@ ir_print_glsl_visitor::ir_print_glsl_visitor(string_buffer *buf, struct _mesa_gl
    unique_name_number = 0;
    printable_names =
       _mesa_hash_table_create(NULL, _mesa_hash_pointer, _mesa_key_pointer_equal);
-   ubo_names = 
-      _mesa_hash_table_create(NULL, _mesa_key_hash_string, _mesa_key_string_equal);
    symbols = _mesa_symbol_table_ctor();
    mem_ctx = ralloc_context(NULL);
 }
@@ -153,7 +145,6 @@ ir_print_glsl_visitor::ir_print_glsl_visitor(string_buffer *buf, struct _mesa_gl
 ir_print_glsl_visitor::~ir_print_glsl_visitor()
 {
    _mesa_hash_table_destroy(printable_names, NULL);
-   _mesa_hash_table_destroy(ubo_names, NULL);
    _mesa_symbol_table_dtor(symbols);
    ralloc_free(mem_ctx);
 }
@@ -196,47 +187,12 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
    return name;
 }
 
-bool 
-ir_print_glsl_visitor::is_ubo_exist(ir_variable *var)
-{
-   if (var->data.mode != ir_var_uniform)
-      return false;
-   const glsl_type *type = var->get_interface_type();
-   if (type == NULL)
-      return true;
-   struct hash_entry * entry =
-      _mesa_hash_table_search(this->ubo_names, type->name);
-
-   if (entry != NULL) {
-      return true;
-   }
-   return false;
-}
-
-void 
-ir_print_glsl_visitor::reg_ubo(ir_variable *var)
-{
-   if (var->data.mode != ir_var_uniform)
-      return;
-   const glsl_type *type = var->get_interface_type();
-   struct hash_entry * entry =
-      _mesa_hash_table_search(this->ubo_names, type->name);
-
-   if (entry != NULL) {
-      return;
-   }
-
-   _mesa_hash_table_insert(ubo_names, type->name, var);
-}
-
 static void
 print_type(string_buffer *buf, const glsl_type *t, unsigned int version)
 {
    if (t->base_type == GLSL_TYPE_ARRAY) {
-      if (t->length) {
-         print_type(buf, t->fields.array, version);
-         buf->printf("[%u]", t->length);
-      }
+      print_type(buf, t->fields.array, version);
+      buf->printf("[%u]", t->length);
    } else if ((t->base_type == GLSL_TYPE_STRUCT) && !is_gl_identifier(t->name)) {
       buf->printf("%s_%p", t->name, (void *) t);
    } else if ((t->base_type == GLSL_TYPE_UINT) && version <= 120) {
@@ -258,7 +214,6 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
    if (ir->type->base_type == GLSL_TYPE_VOID)
       return;
 
-   const glsl_type* interface_type = ir->get_interface_type();
    if (state->language_version <= 120) {
       if (state->stage == MESA_SHADER_VERTEX) {
          const char *const mode[] = { "", "uniform ", "", "", "attribute ", "varying ", "in ", "out ", "inout ", "", "", "" };
@@ -267,101 +222,9 @@ void ir_print_glsl_visitor::visit(ir_variable *ir)
          const char *const mode[] = { "", "uniform ", "", "", "varying ", "out ", "in ", "out ", "inout ", "", "", "" };
          buf->printf("%s", mode[ir->data.mode]);
       }
-   } else if ((ir->data.mode == ir_var_shader_in || ir->data.mode == ir_var_shader_out) && (ir->data.location != -1)) {
-      if (state->stage == MESA_SHADER_VERTEX) {
-         const char *const in_mode = (state->language_version >= 410) ? "in " : "attribute ";
-         const char *const out_mode = (state->language_version >= 410) ? "out " : "varying ";
-         const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
-         if (state->has_vulkan_glsl()) {
-            unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - VARYING_SLOT_VAR0 - 1 : ir->data.location - VERT_ATTRIB_GENERIC0;
-            buf->printf("layout (location = %d) %s", location, mode);
-         } else {
-            buf->printf("%s", mode);
-         }
-      } else if (state->stage == MESA_SHADER_FRAGMENT) {
-         const char *const in_mode = (state->language_version >= 410) ? "in " : "varying ";
-         const char *const out_mode = "out ";
-         const char *const mode = (ir->data.mode == ir_var_shader_out) ? out_mode : in_mode;
-         unsigned int location = (ir->data.mode == ir_var_shader_out) ? ir->data.location - FRAG_RESULT_DATA0 : ir->data.location - VARYING_SLOT_VAR0 - 1;
-         if (state->has_vulkan_glsl()) {
-            buf->printf("layout (location = %d) %s", location, mode);
-         } else {
-            buf->printf("%s", mode);
-         }
-      }
-   } else if ((interface_type != NULL) && (ir->data.mode == ir_var_uniform) && (ir->type->is_sampler() == false)) {
-      if (is_ubo_exist(ir))
-          return;
-      reg_ubo(ir);
-      if (state->has_vulkan_glsl() && (ir->data.explicit_binding || ir->data.set)) {
-        buf->printf("layout(set = %d, binding = %d) uniform %s\n{\n", ir->data.set, ir->data.binding, interface_type->name);
-      } else if (state->has_420pack_or_es31()) {
-        buf->printf("layout(binding = %d) uniform %s\n{\n", ir->data.binding, interface_type->name);
-      } else {
-        buf->printf("uniform %s\n{\n", interface_type->name);
-      }
-      for (unsigned j = 0; j < interface_type->length; j++) {
-         const glsl_type* member = interface_type->fields.structure[j].type;
-         if (member->base_type == GLSL_TYPE_ARRAY) {
-            char array_desc_name[64] = {};
-            const char* desc_name = member->name;
-            char char_code = *desc_name++;
-            unsigned int index = 0;
-            while (char_code && (char_code != '[') && index < sizeof(array_desc_name)) {
-                array_desc_name[index++] = char_code;
-                char_code = *desc_name++;
-            }
-            if (member->length != 0) {
-               buf->printf ("    %s %s[%d];\n", array_desc_name, interface_type->fields.structure[j].name, member->length);
-            } else {
-               buf->printf ("    %s %s[ ];\n", array_desc_name, interface_type->fields.structure[j].name);
-            }
-         } else {
-            buf->printf("    %s %s;\n", member->name, interface_type->fields.structure[j].name);
-         }
-      }
-      buf->printf("}");
-      return;
-   } else if (ir->data.mode == ir_var_shader_storage) {
-      const glsl_type* interface_type = ir->get_interface_type();
-      if (state->has_vulkan_glsl() && (ir->data.explicit_binding || ir->data.set)) {
-         buf->printf("layout(std430, set = %d, binding = %d) buffer %s\n{\n", ir->data.set, ir->data.binding, interface_type->name);
-      } else if (state->has_shader_storage_buffer_objects()) {
-         buf->printf("layout(std430, binding = %d) buffer %s\n{\n", ir->data.binding, interface_type->name);
-      } else {
-          return;
-      }
-      for (unsigned j = 0; j < interface_type->length; j++) {
-         const glsl_type* member = interface_type->fields.structure[j].type;
-         if (member->base_type == GLSL_TYPE_ARRAY) {
-            char array_desc_name[64] = {};
-            const char* desc_name = member->name;
-            char char_code = *desc_name++;
-            unsigned int index = 0;
-            while (char_code && (char_code != '[') && index < sizeof(array_desc_name)) {
-                array_desc_name[index++] = char_code;
-                char_code = *desc_name++;
-            }
-            buf->printf ("    %s %s[ ];\n", array_desc_name, interface_type->fields.structure[j].name);
-         } else {
-            buf->printf("    %s %s;\n", member->name, interface_type->fields.structure[j].name);
-         }
-      }
-      buf->printf("}");
-      return;
    } else {
       const char *const mode[] = { "", "uniform ", "", "", "in ", "out ", "in ", "out ", "inout ", "", "", "" };
-      if (ir->type->is_sampler()) {
-         if (state->has_vulkan_glsl()) {
-            buf->printf("layout (set = %d, binding = %d) %s", ir->data.set, ir->data.binding, mode[ir->data.mode]);
-         } else if (state->has_420pack_or_es31() && ir->data.explicit_binding) {
-            buf->printf("layout (binding = %d) %s", ir->data.binding, mode[ir->data.mode]);
-         } else {
-            buf->printf("%s", mode[ir->data.mode]);
-         }
-      } else {
-         buf->printf("%s", mode[ir->data.mode]);
-      }
+      buf->printf("%s", mode[ir->data.mode]);
    }
    int default_precision = GLSL_PRECISION_NONE;
    if (state->es_shader)
@@ -550,7 +413,6 @@ static const char *const operator_glsl_strs[] = {
    "vector_extract",
    "interpolate_at_offset",
    "interpolate_at_sample",
-   "read_invocation",
    "fma",
    "mix",
    "csel",
@@ -582,7 +444,7 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
 
 void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
-   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode + 1);
+   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode);
 
    if (ir->get_num_operands() == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
@@ -642,31 +504,6 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
       if (ir->operands[1])
           ir->operands[1]->accept(this);
       buf->printf(")");
-   }
-   else if (ir->operation == ir_triop_fma)
-   {
-      // ternary op
-      buf->printf("%s(", operator_glsl_strs[ir->operation]);
-      for (unsigned int i = 0; i < 3; ++i) {
-         if (ir->operands[i]) {
-            const unsigned int comp_count = ir->type->components();
-            const unsigned int sub_comp_count = ir->operands[i]->type->components();
-            bool need_match_type = ((sub_comp_count == 1) && (comp_count > 1));
-            if (need_match_type) {
-               buf->printf("vec%d(", comp_count);
-            }
-            ir->operands[i]->accept(this);
-            if (need_match_type)
-            {
-                buf->printf(")");
-            }
-         }
-         if (i != 2) {
-            buf->printf(", ");
-         } else {
-            buf->printf(")");
-         }
-      }
    }
    else
    {
@@ -1033,15 +870,4 @@ void
 ir_print_glsl_visitor::visit(ir_barrier *)
 {
    buf->printf("(barrier)\n");
-}
-
-void
-ir_print_glsl_visitor::visit_struct(const glsl_type *type)
-{
-   buf->printf("struct %s\n{\n", type->name);
-   for (unsigned j = 0; j < type->length; j++) {
-       const glsl_type* member = type->fields.structure[j].type;
-       buf->printf("    %s %s;\n", member->name, type->fields.structure[j].name);
-   }
-   buf->printf("};\n");
 }

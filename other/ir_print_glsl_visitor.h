@@ -87,7 +87,6 @@ public:
    virtual void visit(ir_barrier *);
    /*@}*/
 
-   virtual void visit_struct(const glsl_type *);
 private:
    /**
     * Fetch/generate a unique name for ir_variable.
@@ -97,14 +96,10 @@ private:
     */
    const char *unique_name(ir_variable *var);
 
-   bool is_ubo_exist(ir_variable *var);
-   void reg_ubo(ir_variable *var);
-
    /** A mapping from ir_variable * -> unique printable names. */
    int unique_parameter_name_number;
    int unique_name_number;
    hash_table *printable_names;
-   hash_table *ubo_names;
    _mesa_symbol_table *symbols;
 
    void *mem_ctx;
