@@ -413,6 +413,7 @@ static const char *const operator_glsl_strs[] = {
    "vector_extract",
    "interpolate_at_offset",
    "interpolate_at_sample",
+   "read_invocation",
    "fma",
    "mix",
    "csel",
@@ -444,7 +445,7 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
 
 void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
-   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode);
+   STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode + 1);
 
    if (ir->get_num_operands() == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
