@@ -208,7 +208,7 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    if (uniforms_count != 0) {
       f->types.push(SpvOpTypeStruct, uniforms_count + 2);
       f->types.push(f->uniform_struct_id);
-      for (unsigned int i = 0; i < f->uniforms.count(); ++i) {
+      for (unsigned int i = 0; i < uniforms_count; ++i) {
          f->types.push(f->uniforms[i]);
       }
 
@@ -240,16 +240,18 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->push(SpvOpCapability, 2);
    f->push(SpvCapabilityShader);
 
-   for (unsigned int i = 0; i < f->extensions.count(); ++i) {
+   unsigned int extensions_count = f->extensions.count();
+   for (unsigned int i = 0; i < extensions_count; ++i) {
       f->push(f->extensions[i]);
    }
 
    // EntryPoint Fragment 4  "main" 20 22 37 43 46 49
-   f->push(SpvOpEntryPoint, f->inouts.count() + 5);
+   unsigned int inouts_count = f->inouts.count();
+   f->push(SpvOpEntryPoint, inouts_count + 5);
    f->push(stage_type[stage]);
    f->push(f->main_id);
    f->push("main");
-   for (unsigned int i = 0; i < f->inouts.count(); ++i) {
+   for (unsigned int i = 0; i < inouts_count; ++i) {
       f->push(f->inouts[i]);
    }
 
@@ -265,15 +267,18 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->push(es ? SpvSourceLanguageESSL : SpvSourceLanguageGLSL);
    f->push(version);
 
-   for (unsigned int i = 0; i < f->names.count(); ++i) {
+   unsigned int names_count = f->names.count();
+   for (unsigned int i = 0; i < names_count; ++i) {
       f->push(f->names[i]);
    }
 
-   for (unsigned int i = 0; i < f->decorates.count(); ++i) {
+   unsigned int decorates_count = f->decorates.count();
+   for (unsigned int i = 0; i < decorates_count; ++i) {
       f->push(f->decorates[i]);
    }
 
-   for (unsigned int i = 0; i < f->types.count(); ++i) {
+   unsigned int types_count = f->types.count();
+   for (unsigned int i = 0; i < types_count; ++i) {
       f->push(f->types[i]);
    }
 
@@ -282,17 +287,19 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    if (per_vertices_count != 0) {
       f->push(SpvOpTypeStruct, per_vertices_count + 2);
       f->push(f->gl_per_vertex_id);
-      for (unsigned int i = 0; i < f->per_vertices.count(); ++i) {
+      for (unsigned int i = 0; i < per_vertices_count; ++i) {
          f->push(f->per_vertices[i]);
       }
    }
 
    // Built-in
-   for (unsigned int i = 0; i < f->builtins.count(); ++i) {
+   unsigned int builtins_count = f->builtins.count();
+   for (unsigned int i = 0; i < builtins_count; ++i) {
       f->push(f->builtins[i]);
    }
 
-   for (unsigned int i = 0; i < f->functions.count(); ++i) {
+   unsigned int functions_count = f->functions.count();
+   for (unsigned int i = 0; i < functions_count; ++i) {
       f->push(f->functions[i]);
    }
 }
@@ -1264,10 +1271,11 @@ void ir_print_spirv_visitor::visit(ir_texture *ir)
       op_id = ir->projector ? SpvOpImageSampleProjImplicitLod : SpvOpImageSampleImplicitLod;
       unsigned int type_id = visit_type(ir->type);
       unsigned int result_id = f->id++;
-      f->functions.push(op_id, ids.count() + 3);
+      unsigned int ids_count = ids.count();
+      f->functions.push(op_id, ids_count + 3);
       f->functions.push(type_id);
       f->functions.push(result_id);
-      for (unsigned int i = 0; i < ids.count(); ++i) {
+      for (unsigned int i = 0; i < ids_count; ++i) {
          f->functions.push(ids[i]);
       }
       ir->ir_value = result_id;
@@ -1693,10 +1701,11 @@ void ir_print_spirv_visitor::visit(ir_constant *ir)
          }
          unsigned int value_id = f->id++;
          unsigned int type_id = visit_type(ir->type);
-         f->types.push(SpvOpConstantComposite, ids.count() + 3);
+         unsigned int ids_count = ids.count();
+         f->types.push(SpvOpConstantComposite, ids_count + 3);
          f->types.push(type_id);
          f->types.push(value_id);
-         for (unsigned i = 0; i < ids.count(); i++) {
+         for (unsigned i = 0; i < ids_count; i++) {
             f->types.push(ids[i]);
          }
          ir->ir_value = value_id;
