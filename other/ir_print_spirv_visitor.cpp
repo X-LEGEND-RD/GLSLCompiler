@@ -188,6 +188,14 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
       }
    }
 
+   // collect non-uniform
+   foreach_in_list(ir_instruction, ir, instructions) {
+      ir_variable* var = ir->as_variable();
+      if (var && (var->data.mode != ir_var_uniform || var->type->is_sampler() == true)) {
+         var->accept(&v);
+      }
+   }
+
    // collect uniform
    foreach_in_list(ir_instruction, ir, instructions) {
       ir_variable* var = ir->as_variable();
@@ -213,14 +221,6 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
       f->types.push(f->uniform_pointer_id);
       f->types.push(f->uniform_id);
       f->types.push(SpvStorageClassUniform);
-   }
-
-   // collect non-uniform
-   foreach_in_list(ir_instruction, ir, instructions) {
-      ir_variable* var = ir->as_variable();
-      if (var && (var->data.mode != ir_var_uniform || var->type->is_sampler() == true)) {
-         var->accept(&v);
-      }
    }
 
    foreach_in_list(ir_instruction, ir, instructions) {
@@ -659,7 +659,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
    if (ir->data.mode == ir_var_uniform) {
 
       if (ir->type->is_sampler()) {
-          // move to visit_sampler_type
+         ir->ir_initialized = f->binding_id++;
       } else {
 
          if (f->uniform_struct_id == 0) {
@@ -738,7 +738,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->reflections.push(reflection_int_type[base_type->vector_elements - 1]);
          }
          f->reflections.push(f->uniform_offset);
-         f->reflections.push(ir->type->is_array() ? ir->type->fields.array->components() : 1u);
+         f->reflections.push(ir->type->is_array() ? ir->type->length : 1u);
          f->reflections.push(0u);
          f->reflections.push(((int)strlen(ir->name) + sizeof(int)) / sizeof(int));
          f->reflections.push(ir->name);
@@ -1344,7 +1344,7 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
           unsigned int sampled_image_id = visit_type(var->type);
           if (var->ir_pointer == 0) {
              unsigned int name_id = unique_name(var);
-             unsigned int binding_id = f->binding_id++;
+             unsigned int binding_id = var->ir_initialized;
              unsigned int type_pointer_id = visit_type_pointer(ir->type, var->data.mode, sampled_image_id);
 
              f->decorates.push(SpvOpDecorate, 4);
