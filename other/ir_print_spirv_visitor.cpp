@@ -669,27 +669,24 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             snprintf(block_name, sizeof(block_name), "Global%d", binding_id);
 
             f->uniform_struct_id = f->id++;
+            f->uniform_pointer_id = f->id++;
+            f->uniform_id = f->id++;
+
             unsigned int len = (int)strlen(block_name);
             unsigned int count = (len + sizeof(int)) / sizeof(int);
             f->names.push(SpvOpName, count + 2);
             f->names.push(f->uniform_struct_id);
             f->names.push(block_name);
 
+            unsigned int empty_len = (int)strlen("");
+            unsigned int empty_count = (empty_len + sizeof(int)) / sizeof(int);
+            f->names.push(SpvOpName, empty_count + 2);
+            f->names.push(f->uniform_id);
+            f->names.push("");
+
             f->decorates.push(SpvOpDecorate, 3);
             f->decorates.push(f->uniform_struct_id);
             f->decorates.push(SpvDecorationBlock);
-         }
-
-         if (f->uniform_id == 0) {
-
-            f->uniform_pointer_id = f->id++;
-            f->uniform_id = f->id++;
-
-            unsigned int len = (int)strlen("");
-            unsigned int count = (len + sizeof(int)) / sizeof(int);
-            f->names.push(SpvOpName, count + 2);
-            f->names.push(f->uniform_id);
-            f->names.push("");
 
             f->decorates.push(SpvOpDecorate, 4);
             f->decorates.push(f->uniform_id);
@@ -699,7 +696,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.push(SpvOpDecorate, 4);
             f->decorates.push(f->uniform_id);
             f->decorates.push(SpvDecorationBinding);
-            f->decorates.push(f->binding_id - 1);
+            f->decorates.push(binding_id);
          }
 
          unsigned int len = (int)strlen(ir->name);
@@ -741,7 +738,7 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
             f->reflections.push(reflection_int_type[base_type->vector_elements - 1]);
          }
          f->reflections.push(f->uniform_offset);
-         f->reflections.push(current_size);
+         f->reflections.push(ir->type->is_array() ? ir->type->fields.array->components() : 1u);
          f->reflections.push(0u);
          f->reflections.push(((int)strlen(ir->name) + sizeof(int)) / sizeof(int));
          f->reflections.push(ir->name);
