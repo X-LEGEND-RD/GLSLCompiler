@@ -166,6 +166,10 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
       f->precision_int = GLSL_PRECISION_NONE;
    }
 
+   // Capability
+   f->capability.push(SpvOpCapability, 2);
+   f->capability.push(SpvCapabilityShader);
+
    // ExtInstImport
    f->import_id = f->id++;
    f->extensions.push(SpvOpExtInstImport, 6);
@@ -237,9 +241,12 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->push(0u);
 
    // Capability
-   f->push(SpvOpCapability, 2);
-   f->push(SpvCapabilityShader);
+   unsigned int capability_count = f->capability.count();
+   for (unsigned int i = 0; i < capability_count; ++i) {
+      f->push(f->capability[i]);
+   }
 
+   // Extension
    unsigned int extensions_count = f->extensions.count();
    for (unsigned int i = 0; i < extensions_count; ++i) {
       f->push(f->extensions[i]);
@@ -621,6 +628,93 @@ void ir_print_spirv_visitor::visit_value(ir_rvalue *ir)
          ir->ir_pointer = pointer_id;
       }
       if (ir->ir_pointer != 0) {
+
+         if (f->shader_stage == MESA_SHADER_FRAGMENT) {
+            const ir_dereference_variable* var = ir->as_dereference_variable();
+            if (var && var->var && var->var->data.mode == ir_var_shader_out) {
+
+               f->capability.push(SpvOpCapability, 2);
+               f->capability.push(SpvCapabilityInputAttachment);
+
+               unsigned int float_type_id = visit_type(glsl_type::float_type);
+               unsigned int image_id = f->id++;
+               f->types.push(SpvOpTypeImage, 9);
+               f->types.push(image_id);
+               f->types.push(float_type_id);
+               f->types.push(SpvDimSubpassData);
+               f->types.push(0u);
+               f->types.push(0u);
+               f->types.push(0u);
+               f->types.push(2u);
+               f->types.push(SpvImageFormatUnknown);
+
+               unsigned int pointer_id = f->id++;
+               f->types.push(SpvOpTypePointer, 4);
+               f->types.push(pointer_id);
+               f->types.push(SpvStorageClassUniformConstant);
+               f->types.push(image_id);
+
+               unsigned int name_id = f->id++;
+               unsigned int binding_id = f->binding_id++;
+
+               f->reflections.push(GL_SHADER_IMAGE_LOAD);
+               f->reflections.push(0u);
+               f->reflections.push(0u);
+               f->reflections.push(0u);
+               f->reflections.push(binding_id);
+               f->reflections.push(((int)strlen("") + sizeof(int)) / sizeof(int));
+               f->reflections.push("");
+
+               unsigned int empty_len = (int)strlen("Input");
+               unsigned int empty_count = (empty_len + sizeof(int)) / sizeof(int);
+               f->names.push(SpvOpName, empty_count + 2);
+               f->names.push(name_id);
+               f->names.push("Input");
+
+               f->decorates.push(SpvOpDecorate, 4);
+               f->decorates.push(name_id);
+               f->decorates.push(SpvDecorationDescriptorSet);
+               f->decorates.push(0u);
+
+               f->decorates.push(SpvOpDecorate, 4);
+               f->decorates.push(name_id);
+               f->decorates.push(SpvDecorationBinding);
+               f->decorates.push(binding_id);
+
+               f->decorates.push(SpvOpDecorate, 4);
+               f->decorates.push(name_id);
+               f->decorates.push(SpvDecorationInputAttachmentIndex);
+               f->decorates.push(0u);
+     
+               f->types.push(SpvOpVariable, 4);
+               f->types.push(pointer_id);
+               f->types.push(name_id);
+               f->types.push(SpvStorageClassUniformConstant);
+
+               unsigned int image_load_id = f->id++;
+               f->functions.push(SpvOpLoad, 4);
+               f->functions.push(image_id);
+               f->functions.push(image_load_id);
+               f->functions.push(name_id);
+
+               ir_constant zero_ir(0, 2);
+               zero_ir.ir_value = 0;
+               visit(&zero_ir);
+
+               unsigned int vec4_type_id = visit_type(glsl_type::vec4_type);
+               unsigned int value_id = f->id++;
+               f->functions.push(SpvOpImageRead, 5);
+               f->functions.push(vec4_type_id);
+               f->functions.push(value_id);
+               f->functions.push(image_load_id);
+               f->functions.push(zero_ir.ir_value);
+
+               ir->ir_value = value_id;
+               visit_precision(ir->ir_value, ir->type->base_type, GLSL_PRECISION_NONE);
+               return;
+            }
+         }
+
          unsigned int type_id = visit_type(ir->type);
          unsigned int value_id = f->id++;
          f->functions.push(SpvOpLoad, 4);
@@ -666,7 +760,15 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
    if (ir->data.mode == ir_var_uniform) {
 
       if (ir->type->is_sampler()) {
-         ir->ir_initialized = f->binding_id++;
+
+         if (ir->data.explicit_binding) {
+           ir->ir_initialized = ir->data.binding;
+           if (f->binding_id <= ir->data.binding)
+              f->binding_id = ir->data.binding + 1;
+         } else {
+           ir->ir_initialized = f->binding_id++;
+         }
+
       } else {
 
          if (f->uniform_struct_id == 0) {

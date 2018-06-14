@@ -53,6 +53,7 @@ public:
    spirv_buffer();
    ~spirv_buffer();
 
+   binary_buffer capability;
    binary_buffer extensions;
    binary_buffer names;
    binary_buffer decorates;
