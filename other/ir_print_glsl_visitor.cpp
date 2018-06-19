@@ -364,6 +364,10 @@ static const char *const operator_glsl_strs[] = {
    "saturate",
    "packDouble2x32",
    "unpackDouble2x32",
+   "packSampler2x32",
+   "packImage2x32",
+   "unpackSampler2x32",
+   "unpackImage2x32",
    "frexp_sig",
    "frexp_exp",
    "noise",
@@ -371,11 +375,6 @@ static const char *const operator_glsl_strs[] = {
    "interpolate_at_centroid",
    "get_buffer_size",
    "ssbo_unsized_array_length",
-   "ballot",
-   "read_first_invocation",
-   "vote_any",
-   "vote_all",
-   "vote_eq",
    "packInt2x32",
    "packUint2x32",
    "unpackInt2x32",
@@ -389,8 +388,6 @@ static const char *const operator_glsl_strs[] = {
    "borrow",
    "mod",
    "<",
-   ">",
-   "<=",
    ">=",
    "==",
    "!=",
@@ -413,7 +410,6 @@ static const char *const operator_glsl_strs[] = {
    "vector_extract",
    "interpolate_at_offset",
    "interpolate_at_sample",
-   "read_invocation",
    "fma",
    "mix",
    "csel",
@@ -447,7 +443,7 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
 {
    STATIC_ASSERT(ARRAY_SIZE(operator_glsl_strs) == ir_last_opcode + 1);
 
-   if (ir->get_num_operands() == 1) {
+   if (ir->num_operands == 1) {
       if (ir->operation >= ir_unop_f2i && ir->operation <= ir_unop_d2b) {
          print_type(buf, ir->type, state->language_version);
          buf->printf("(");
@@ -494,7 +490,7 @@ void ir_print_glsl_visitor::visit(ir_expression *ir)
       if (ir->operation == ir_binop_mod)
          buf->printf("))");
    }
-   else if (ir->get_num_operands() == 2)
+   else if (ir->num_operands == 2)
    {
       buf->printf("(");
       if (ir->operands[0])
@@ -659,7 +655,10 @@ void ir_print_glsl_visitor::visit(ir_dereference_array *ir)
 void ir_print_glsl_visitor::visit(ir_dereference_record *ir)
 {
    ir->record->accept(this);
-   buf->printf(".%s", ir->field);
+
+   const char *field_name =
+      ir->record->type->fields.structure[ir->field_idx].name;
+   buf->printf(".%s", field_name);
 }
 
 void ir_print_glsl_visitor::visit(ir_assignment *ir)
@@ -698,13 +697,10 @@ void ir_print_glsl_visitor::visit(ir_constant *ir)
       for (unsigned i = 0; i < ir->type->length; i++)
          ir->get_array_element(i)->accept(this);
    } else if (ir->type->is_record()) {
-      ir_constant *value = (ir_constant *) ir->components.get_head();
       for (unsigned i = 0; i < ir->type->length; i++) {
          buf->printf("(%s ", ir->type->fields.structure[i].name);
-         value->accept(this);
+         ir->get_record_field(i)->accept(this);
          buf->printf(")");
-
-         value = (ir_constant *) value->next;
       }
    } else {
       for (unsigned i = 0; i < ir->type->components(); i++) {

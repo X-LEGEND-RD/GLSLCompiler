@@ -1004,7 +1004,7 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
 {
    unsigned int operands[4] = {};
 
-   for (unsigned int i = 0; i < ir->get_num_operands(); ++i) {
+   for (unsigned int i = 0; i < ir->num_operands; ++i) {
       if (ir->operands[i] == NULL)
          return;
       ir->operands[i]->accept(this);
@@ -1036,8 +1036,10 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
    }
 
    if (ir->operation == ir_unop_saturate) {
-      if (ir->get_num_operands() != 1)
+      if (ir->num_operands != 1) {
+         unreachable("unknown number of operands");
          return;
+      }
 
       ir_constant zero_ir(0.0f);
       ir_constant one_ir(1.0f);
@@ -1057,8 +1059,10 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       f->functions.push(one_ir.ir_value);
       ir->ir_value = value_id;
    } else if (ir->operation == ir_binop_mul) {
-      if (ir->get_num_operands() != 2)
+      if (ir->num_operands != 2) {
+         unreachable("unknown number of operands");
          return;
+      }
       unsigned int value_id = f->id++;
       if (ir->operands[0]->type->is_scalar()) {
          if (ir->operands[1]->type->is_scalar()) {
@@ -1102,9 +1106,11 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       f->functions.push(operands[0]);
       f->functions.push(operands[1]);
       ir->ir_value = value_id;
-   } else if (ir->operation >= ir_unop_bit_not && ir->operation <= ir_unop_vote_eq) {
-      if (ir->get_num_operands() != 1)
+   } else if (ir->operation >= ir_unop_bit_not && ir->operation <= ir_last_unop) {
+      if (ir->num_operands != 1) {
+         unreachable("unknown number of operands");
          return;
+      }
 
       unsigned int value_id = f->id++;
       switch (ir->operation) {
@@ -1187,9 +1193,11 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       }
       f->functions.push(operands[0]);
       ir->ir_value = value_id;
-   } else if (ir->operation >= ir_binop_add && ir->operation <= ir_binop_interpolate_at_sample) {
-      if (ir->get_num_operands() != 2)
+   } else if (ir->operation >= ir_binop_add && ir->operation <= ir_last_binop) {
+      if (ir->num_operands != 2) {
+         unreachable("unknown number of operands");
          return;
+      }
 
       unsigned int value_id = f->id++;
       switch (ir->operation) {
@@ -1200,8 +1208,6 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_div:
       case ir_binop_mod:
       case ir_binop_less:
-      case ir_binop_greater:
-      case ir_binop_lequal:
       case ir_binop_gequal:
       case ir_binop_equal:
       case ir_binop_nequal:
@@ -1213,8 +1219,6 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          case ir_binop_div:     f->functions.push(float_type ? SpvOpFDiv                 : signed_type ? SpvOpSDiv              : SpvOpUDiv, 5);               break;
          case ir_binop_mod:     f->functions.push(float_type ? SpvOpFMod                 : signed_type ? SpvOpSMod              : SpvOpUMod, 5);               break;
          case ir_binop_less:    f->functions.push(float_type ? SpvOpFOrdLessThan         : signed_type ? SpvOpSLessThan         : SpvOpULessThan, 5);          break;
-         case ir_binop_greater: f->functions.push(float_type ? SpvOpFOrdGreaterThan      : signed_type ? SpvOpSGreaterThan      : SpvOpUGreaterThan, 5);       break;
-         case ir_binop_lequal:  f->functions.push(float_type ? SpvOpFOrdLessThanEqual    : signed_type ? SpvOpSLessThanEqual    : SpvOpULessThanEqual, 5);     break;
          case ir_binop_gequal:  f->functions.push(float_type ? SpvOpFOrdGreaterThanEqual : signed_type ? SpvOpSGreaterThanEqual : SpvOpUGreaterThanEqual, 5);  break;
          case ir_binop_equal:   f->functions.push(float_type ? SpvOpFOrdEqual            : SpvOpIEqual, 5);                                                    break;
          case ir_binop_nequal:  f->functions.push(float_type ? SpvOpFOrdNotEqual         : SpvOpINotEqual, 5);                                                 break;
@@ -1243,9 +1247,11 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
       f->functions.push(operands[0]);
       f->functions.push(operands[1]);
       ir->ir_value = value_id;
-   } else if (ir->operation >= ir_triop_fma && ir->operation <= ir_triop_vector_insert) {
-      if (ir->get_num_operands() != 3)
+   } else if (ir->operation >= ir_triop_fma && ir->operation <= ir_last_triop) {
+      if (ir->num_operands != 3) {
+         unreachable("unknown number of operands");
          return;
+      }
 
       for (unsigned int i = 0; i < 3; ++i) {
          if (ir->operands[i]->type == ir->type) {
@@ -1712,10 +1718,8 @@ void ir_print_spirv_visitor::visit(ir_constant *ir)
       for (unsigned i = 0; i < ir->type->length; i++)
          ir->get_array_element(i)->accept(this);
    } else if (ir->type->is_record()) {
-      ir_constant *value = (ir_constant *) ir->components.get_head();
       for (unsigned i = 0; i < ir->type->length; i++) {
-         value->accept(this);
-         value = (ir_constant *) value->next;
+         ir->get_record_field(i)->accept(this);
       }
    } else {
       if (ir->type->components() == 1) {
