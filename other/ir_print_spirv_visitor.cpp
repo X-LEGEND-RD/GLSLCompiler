@@ -527,9 +527,7 @@ char ir_print_spirv_visitor::check_point_to_type(const struct glsl_type *type, u
 {
    unsigned int* ids;
    if (type->is_array()) {
-      unsigned int base_type_id = visit_type(type->fields.array);
       unsigned int constant_id = 0;
-
       if (type->array_size() < 16) {
          constant_id = f->const_int_id[type->array_size()];
       }
