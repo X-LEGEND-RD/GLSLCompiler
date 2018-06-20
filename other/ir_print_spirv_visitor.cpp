@@ -767,6 +767,67 @@ void ir_print_spirv_visitor::visit(ir_variable *ir)
            ir->ir_initialized = f->binding_id++;
          }
 
+      } else if (ir->type->is_interface()) {
+
+         const glsl_type* interface_type = ir->get_interface_type();
+         unsigned int interface_name_id = f->id++;
+
+         unsigned int len = (int)strlen(interface_type->name);
+         unsigned int count = (len + sizeof(int)) / sizeof(int);
+         f->names.push(SpvOpName, count + 2);
+         f->names.push(interface_name_id);
+         f->names.push(interface_type->name);
+
+         f->decorates.push(SpvOpDecorate, 3);
+         f->decorates.push(interface_name_id);
+         f->decorates.push(SpvDecorationBlock);
+
+         unsigned int offset = 0;
+         binary_buffer ids;
+         for (unsigned int i = 0; i < interface_type->length; ++i) {
+            glsl_struct_field& field = interface_type->fields.structure[i];
+
+            unsigned int len = (int)strlen(field.name);
+            unsigned int count = (len + sizeof(int)) / sizeof(int);
+            f->names.push(SpvOpMemberName, count + 3);
+            f->names.push(interface_name_id);
+            f->names.push(i);
+            f->names.push(field.name);
+
+            unsigned int base_alignment = field.type->std430_base_alignment(false);
+            offset = (offset + base_alignment - 1) & ~(base_alignment - 1);
+            f->decorates.push(SpvOpMemberDecorate, 5);
+            f->decorates.push(interface_name_id);
+            f->decorates.push(i);
+            f->decorates.push(SpvDecorationOffset);
+            f->decorates.push(offset);
+            offset += field.type->std430_size(false);
+
+            unsigned int type_id = visit_type(field.type);
+            ids.push(type_id);
+         }
+
+         unsigned int ids_count = ids.count();
+         f->types.push(SpvOpTypeStruct, ids_count + 2);
+         f->types.push(interface_name_id);
+         for (unsigned int i = 0; i < ids_count; ++i)
+            f->types.push(ids[i]);
+
+         unsigned int pointer_id = f->id++;
+         f->types.push(SpvOpTypePointer, 4);
+         f->types.push(pointer_id);
+         f->types.push(SpvStorageClassPushConstant);
+         f->types.push(interface_name_id);
+
+         unsigned int name_id = unique_name(ir);
+         f->types.push(SpvOpVariable, 4);
+         f->types.push(pointer_id);
+         f->types.push(name_id);
+         f->types.push(SpvStorageClassPushConstant);
+
+         ir->ir_pointer = pointer_id;
+         ir->ir_value = name_id;
+
       } else {
 
          if (f->uniform_struct_id == 0) {
@@ -1451,52 +1512,55 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
 
    switch (var->data.mode) {
    case ir_var_uniform:
-      if (var->type->is_sampler() == false) {
-         ir->ir_uniform = var->ir_uniform + 1;
+      if (var->type->is_sampler()) {
+         unsigned int sampled_image_id = visit_type(var->type);
+         if (var->ir_pointer == 0) {
+            unsigned int name_id = unique_name(var);
+            unsigned int binding_id = var->ir_initialized;
+            unsigned int type_pointer_id = visit_type_pointer(ir->type, var->data.mode, sampled_image_id);
+
+            f->decorates.push(SpvOpDecorate, 4);
+            f->decorates.push(name_id);
+            f->decorates.push(SpvDecorationDescriptorSet);
+            f->decorates.push(0u);
+
+            f->decorates.push(SpvOpDecorate, 4);
+            f->decorates.push(name_id);
+            f->decorates.push(SpvDecorationBinding);
+            f->decorates.push(binding_id);
+
+            f->types.push(SpvOpVariable, 4);
+            f->types.push(type_pointer_id);
+            f->types.push(var->ir_pointer);
+            f->types.push(SpvStorageClassUniformConstant);
+
+            f->reflections.push(GL_SAMPLER);
+            switch (var->type->sampler_dimensionality) {
+               case GLSL_SAMPLER_DIM_1D:        f->reflections.push(GL_SAMPLER_1D);    break;
+               case GLSL_SAMPLER_DIM_2D:        f->reflections.push(GL_SAMPLER_2D);    break;
+               case GLSL_SAMPLER_DIM_3D:        f->reflections.push(GL_SAMPLER_3D);    break;
+               case GLSL_SAMPLER_DIM_CUBE:      f->reflections.push(GL_SAMPLER_CUBE);  break;
+            }
+            f->reflections.push(0u);
+            f->reflections.push(0u);
+            f->reflections.push(binding_id);
+            f->reflections.push(((int)strlen(var->name) + sizeof(int)) / sizeof(int));
+            f->reflections.push(var->name);
+         }
+
+         unsigned int value_id = f->id++;
+         f->functions.push(SpvOpLoad, 4);
+         f->functions.push(sampled_image_id);
+         f->functions.push(value_id);
+         f->functions.push(var->ir_pointer);
+ 
+         ir->ir_value = value_id;
+      } else if (var->type->is_interface()) {
+         ir->ir_value = var->ir_value;
          break;
       } else {
-          unsigned int sampled_image_id = visit_type(var->type);
-          if (var->ir_pointer == 0) {
-             unsigned int name_id = unique_name(var);
-             unsigned int binding_id = var->ir_initialized;
-             unsigned int type_pointer_id = visit_type_pointer(ir->type, var->data.mode, sampled_image_id);
-
-             f->decorates.push(SpvOpDecorate, 4);
-             f->decorates.push(name_id);
-             f->decorates.push(SpvDecorationDescriptorSet);
-             f->decorates.push(0u);
-
-             f->decorates.push(SpvOpDecorate, 4);
-             f->decorates.push(name_id);
-             f->decorates.push(SpvDecorationBinding);
-             f->decorates.push(binding_id);
-
-             f->types.push(SpvOpVariable, 4);
-             f->types.push(type_pointer_id);
-             f->types.push(var->ir_pointer);
-             f->types.push(SpvStorageClassUniformConstant);
-
-             f->reflections.push(GL_SAMPLER);
-             switch (var->type->sampler_dimensionality) {
-                case GLSL_SAMPLER_DIM_1D:        f->reflections.push(GL_SAMPLER_1D);    break;
-                case GLSL_SAMPLER_DIM_2D:        f->reflections.push(GL_SAMPLER_2D);    break;
-                case GLSL_SAMPLER_DIM_3D:        f->reflections.push(GL_SAMPLER_3D);    break;
-                case GLSL_SAMPLER_DIM_CUBE:      f->reflections.push(GL_SAMPLER_CUBE);  break;
-             }
-             f->reflections.push(0u);
-             f->reflections.push(0u);
-             f->reflections.push(binding_id);
-             f->reflections.push(((int)strlen(var->name) + sizeof(int)) / sizeof(int));
-             f->reflections.push(var->name);
-          }
-
-          unsigned int value_id = f->id++;
-          f->functions.push(SpvOpLoad, 4);
-          f->functions.push(sampled_image_id);
-          f->functions.push(value_id);
-          f->functions.push(var->ir_pointer);
- 
-          ir->ir_value = value_id;
+         ir->ir_uniform = var->ir_uniform + 1;
+         break;
       }
       ir->ir_pointer = var->ir_pointer;
       break;
@@ -1623,8 +1687,24 @@ void ir_print_spirv_visitor::visit(ir_dereference_array *ir)
 
 void ir_print_spirv_visitor::visit(ir_dereference_record *ir)
 {
-   //ir->record->accept(this);
-   //fprintf(f, ".%s", ir->field);
+   ir->record->accept(this);
+   visit_value(ir->record);
+
+   glsl_struct_field& field = ir->record->type->fields.structure[ir->field_idx];
+
+   ir_constant ir_index(ir->field_idx);
+   ir_index.ir_value = 0;
+   visit(&ir_index);
+
+   unsigned int type_id = visit_type(field.type);
+   unsigned int pointer_id = visit_type_pointer(field.type, ir_var_const_in, type_id);
+   unsigned int value_id = f->id++;
+   f->functions.push(SpvOpAccessChain, 5);
+   f->functions.push(pointer_id);
+   f->functions.push(value_id);
+   f->functions.push(ir->record->ir_value);
+   f->functions.push(ir_index.ir_value);
+   ir->ir_pointer = value_id;
 }
 
 void ir_print_spirv_visitor::visit(ir_assignment *ir)
