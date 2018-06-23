@@ -554,9 +554,7 @@ unsigned int ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *
    if (mode >= ir_var_mode_count) {
       return 0;
    }
-   if (mode == ir_var_temporary) {
-      mode = ir_var_auto;
-   }
+   unsigned int storage_class = storage_mode[mode];
 
    if (type->is_sampler()) {
       if (f->pointer_sampler_id[type->sampler_dimensionality] == 0) {
@@ -570,22 +568,22 @@ unsigned int ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *
    } else if (type->is_array()) {
       return visit_type_pointer(type->fields.array, mode, point_to);
    } else if (type->is_boolean()) {
-      if (f->pointer_bool_id[mode] == 0) {
-         f->pointer_bool_id[mode] = f->id++;
+      if (f->pointer_bool_id[storage_class] == 0) {
+         f->pointer_bool_id[storage_class] = f->id++;
          f->types.push(SpvOpTypePointer, 4);
-         f->types.push(f->pointer_bool_id[mode]);
-         f->types.push(storage_mode[mode]);
+         f->types.push(f->pointer_bool_id[storage_class]);
+         f->types.push(storage_class);
          f->types.push(point_to);
       }
-      return f->pointer_bool_id[mode];
+      return f->pointer_bool_id[storage_class];
    }
 
    unsigned int vector_id;
    unsigned int* ids;
    if (type->is_float()) {
-      ids = f->pointer_float_id;
+      ids = f->pointer_float_id[storage_class];
    } else if (type->is_integer()) {
-      ids = f->pointer_int_id;
+      ids = f->pointer_int_id[storage_class];
    } else {
       return 0;
    }
@@ -593,7 +591,6 @@ unsigned int ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *
    char is_type_exist = check_point_to_type(type, point_to);
 
    unsigned int offset = (type->vector_elements - 1) + (type->matrix_columns - 1) * 4;
-   offset += (mode * 16);
    if ((ids[offset] == 0) || (is_type_exist != 1)) {
       vector_id = f->id++;
       if (is_type_exist == 1) {
@@ -601,7 +598,7 @@ unsigned int ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *
       }
       f->types.push(SpvOpTypePointer, 4);
       f->types.push(vector_id);
-      f->types.push(storage_mode[mode]);
+      f->types.push(storage_class);
       f->types.push(point_to);
    } else {
       vector_id = ids[offset];
@@ -1490,6 +1487,17 @@ void ir_print_spirv_visitor::visit(ir_swizzle *ir)
       f->functions.push(value_id);
       f->functions.push(source_id);
       f->functions.push(ir->mask.x);
+      ir->ir_value = value_id;
+      return;
+   }
+
+   if (ir->val->type->is_vector() == false) {
+      f->functions.push(SpvOpCompositeConstruct, ir->mask.num_components + 3);
+      f->functions.push(type_id);
+      f->functions.push(value_id);
+      for (unsigned int i = 0; i < ir->mask.num_components; ++i) {
+         f->functions.push(source_id);
+      }
       ir->ir_value = value_id;
       return;
    }
