@@ -1627,6 +1627,7 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
             f->builtins.push(struct_pointer_id);
             f->builtins.push(variable_id);
             f->builtins.push(SpvStorageClassOutput);
+            f->inouts.push(variable_id);
 
             unsigned int int_type_id = visit_type(glsl_type::int_type);
             unsigned int constant_id = f->id++;
