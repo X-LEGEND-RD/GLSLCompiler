@@ -82,6 +82,7 @@ public:
    unsigned int gl_per_vertex_id;
 
    unsigned int void_id;
+   unsigned int void_function_id;
    unsigned int bool_id;
    unsigned int float_id[4*4];
    unsigned int int_id[4*4];

@@ -139,6 +139,7 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->main_id = 0;
    f->gl_per_vertex_id = 0;
    f->void_id = 0;
+   f->void_function_id = 0;
    f->bool_id = 0;
    memset(f->float_id, 0, sizeof(f->float_id));
    memset(f->int_id, 0, sizeof(f->int_id));
@@ -552,6 +553,9 @@ unsigned int ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *
 {
    if (mode >= ir_var_mode_count) {
       return 0;
+   }
+   if (mode == ir_var_temporary) {
+      mode = ir_var_auto;
    }
 
    if (type->is_sampler()) {
@@ -1001,10 +1005,12 @@ void ir_print_spirv_visitor::visit(ir_function_signature *ir)
    }
 
    // TypeFunction
-   unsigned int function_id = f->id++;
-   f->types.push(SpvOpTypeFunction, 3);
-   f->types.push(function_id);
-   f->types.push(type_id);
+   if (f->void_function_id == 0) {
+      f->void_function_id = f->id++;
+      f->types.push(SpvOpTypeFunction, 3);
+      f->types.push(f->void_function_id);
+      f->types.push(type_id);
+   }
 
    // TypeName
    unsigned int function_name_id = 0;
@@ -1022,7 +1028,7 @@ void ir_print_spirv_visitor::visit(ir_function_signature *ir)
    f->functions.push(type_id);
    f->functions.push(function_name_id);
    f->functions.push(SpvFunctionControlMaskNone);
-   f->functions.push(function_id);
+   f->functions.push(f->void_function_id);
 
    // Label
    unsigned int label_id = f->id++;
