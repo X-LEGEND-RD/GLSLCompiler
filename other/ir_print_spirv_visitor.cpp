@@ -1261,6 +1261,30 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          return;
       }
 
+      switch (ir->operation) {
+      default:
+         break;
+      case ir_binop_add:
+      case ir_binop_sub:
+      case ir_binop_div:
+      case ir_binop_mod:
+         for (unsigned int i = 0; i < 2; ++i) {
+            if (ir->operands[i]->type == ir->type) {
+               operands[i] = ir->operands[i]->ir_value;
+            } else if (ir->operands[i]->type->components() == 1) {
+               operands[i] = f->id++;
+               f->functions.push(SpvOpCompositeConstruct, ir->type->components() + 3);
+               f->functions.push(type_id);
+               f->functions.push(operands[i]);
+               for (unsigned int j = 0; j < ir->type->components(); ++j) {
+                  f->functions.push(ir->operands[i]->ir_value);
+               }
+            } else {
+               unreachable("operands must match result or be scalar");
+            }
+         }
+      }
+
       unsigned int value_id = f->id++;
       switch (ir->operation) {
       default:
@@ -1315,19 +1339,25 @@ void ir_print_spirv_visitor::visit(ir_expression *ir)
          return;
       }
 
-      for (unsigned int i = 0; i < 3; ++i) {
-         if (ir->operands[i]->type == ir->type) {
-            operands[i] = ir->operands[i]->ir_value;
-         } else if (ir->operands[i]->type->components() == 1) {
-            operands[i] = f->id++;
-            f->functions.push(SpvOpCompositeConstruct, ir->type->components() + 3);
-            f->functions.push(type_id);
-            f->functions.push(operands[i]);
-            for (unsigned int j = 0; j < ir->type->components(); ++j) {
-               f->functions.push(ir->operands[i]->ir_value);
+      switch (ir->operation) {
+      default:
+         break;
+      case ir_triop_fma:
+      case ir_triop_lrp:
+         for (unsigned int i = 0; i < 3; ++i) {
+            if (ir->operands[i]->type == ir->type) {
+               operands[i] = ir->operands[i]->ir_value;
+            } else if (ir->operands[i]->type->components() == 1) {
+               operands[i] = f->id++;
+               f->functions.push(SpvOpCompositeConstruct, ir->type->components() + 3);
+               f->functions.push(type_id);
+               f->functions.push(operands[i]);
+               for (unsigned int j = 0; j < ir->type->components(); ++j) {
+                  f->functions.push(ir->operands[i]->ir_value);
+               }
+            } else {
+               unreachable("operands must match result or be scalar");
             }
-         } else {
-            unreachable("operands must match result or be scalar");
          }
       }
 
