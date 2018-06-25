@@ -1395,34 +1395,80 @@ void ir_print_spirv_visitor::visit(ir_texture *ir)
       return;
    }
 
-   binary_buffer ids;
-
    ir->sampler->accept(this);
    visit_value(ir->sampler);
-   ids.push(ir->sampler->ir_value);
+
+   unsigned int coordinate_id = 0;
+   unsigned int image_operand_ids[16] = {};
 
    if (ir->op != ir_txs && ir->op != ir_query_levels && ir->op != ir_texture_samples) {
 
       ir->coordinate->accept(this);
       visit_value(ir->coordinate);
-      ids.push(ir->coordinate->ir_value);
+      coordinate_id = ir->coordinate->ir_value;
 
-      if (ir->offset != NULL) {
+      if (ir->offset) {
+
          ir->offset->accept(this);
          visit_value(ir->offset);
-         ids.push(ir->offset->ir_value);
+
+         image_operand_ids[SpvImageOperandsBiasShift] = ir->offset->ir_value;
       }
    }
 
    if (ir->op != ir_txf && ir->op != ir_txf_ms && ir->op != ir_txs && ir->op != ir_tg4 && ir->op != ir_query_levels && ir->op != ir_texture_samples) {
 
       if (ir->projector) {
+
          ir->projector->accept(this);
          visit_value(ir->projector);
-         ids.push(ir->projector->ir_value);
+
+         unsigned int components[4];
+         unsigned int coordinate_component = ir->coordinate->type->components();
+         if (coordinate_component == 1) {
+            components[0] = coordinate_id;
+         }
+         else {
+            for (unsigned int i = 0; i < coordinate_component; ++i) {
+               unsigned int id = f->id++;
+               f->functions.push(SpvOpCompositeExtract, 5);
+               f->functions.push(visit_type(glsl_type::float_type));
+               f->functions.push(id);
+               f->functions.push(coordinate_id);
+               f->functions.push(i);
+               components[i] = id;
+            }
+         }
+
+         const glsl_type* combined_type;
+         switch (coordinate_component)
+         {
+         case 1:
+            combined_type = glsl_type::vec2_type;
+            break;
+         case 2:
+            combined_type = glsl_type::vec3_type;
+            break;
+         case 3:
+            combined_type = glsl_type::vec4_type;
+            break;
+         default:
+            unreachable("unknown component");
+         }
+
+         coordinate_id = f->id++;
+         f->functions.push(SpvOpCompositeConstruct, coordinate_component + 4);
+         f->functions.push(visit_type(combined_type));
+         f->functions.push(coordinate_id);
+         for (unsigned int i = 0; i < coordinate_component; ++i) {
+            f->functions.push(components[i]);
+         }
+         f->functions.push(ir->projector->ir_value);
       }
    }
 
+   unsigned int op_id = ir->projector ? SpvOpImageSampleProjImplicitLod : SpvOpImageSampleImplicitLod;
+   unsigned int component_id = 0;
    switch (ir->op)
    {
    case ir_tex:
@@ -1433,72 +1479,154 @@ void ir_print_spirv_visitor::visit(ir_texture *ir)
    case ir_txb:
       ir->lod_info.bias->accept(this);
       visit_value(ir->lod_info.bias);
-      ids.push(ir->lod_info.bias->ir_value);
+
+      // Only valid with implicit-lod instructions
+      op_id = ir->projector ? SpvOpImageSampleProjImplicitLod : SpvOpImageSampleImplicitLod;
+      image_operand_ids[SpvImageOperandsBiasShift] = ir->lod_info.bias->ir_value;
       break;
    case ir_txl:
    case ir_txf:
    case ir_txs:
       ir->lod_info.lod->accept(this);
       visit_value(ir->lod_info.lod);
-      ids.push(ir->lod_info.lod->ir_value);
+
+      // Only valid with explicit-lod instructions
+      op_id = ir->projector ? SpvOpImageSampleProjExplicitLod : SpvOpImageSampleExplicitLod;
+      image_operand_ids[SpvImageOperandsLodShift] = ir->lod_info.lod->ir_value;
       break;
    case ir_txf_ms:
       ir->lod_info.sample_index->accept(this);
       visit_value(ir->lod_info.sample_index);
-      ids.push(ir->lod_info.sample_index->ir_value);
+
+      op_id = SpvOpImageFetch;
+      image_operand_ids[SpvImageOperandsSampleShift] = ir->lod_info.sample_index->ir_value;
       break;
    case ir_txd:
       ir->lod_info.grad.dPdx->accept(this);
       ir->lod_info.grad.dPdy->accept(this);
       visit_value(ir->lod_info.grad.dPdx);
       visit_value(ir->lod_info.grad.dPdy);
-      ids.push(ir->lod_info.grad.dPdx->ir_value);
-      ids.push(ir->lod_info.grad.dPdy->ir_value);
+
+      // Only valid with explicit-lod instructions
+      op_id = ir->projector ? SpvOpImageSampleProjExplicitLod : SpvOpImageSampleExplicitLod;
+      image_operand_ids[SpvImageOperandsGradShift] = ir->lod_info.grad.dPdx->ir_value;
+      image_operand_ids[SpvImageOperandsConstOffsetShift] = ir->lod_info.grad.dPdy->ir_value;
       break;
    case ir_tg4:
       ir->lod_info.component->accept(this);
       visit_value(ir->lod_info.component);
-      ids.push(ir->lod_info.component->ir_value);
+
+      op_id = SpvOpImageGather;
+      component_id = ir->lod_info.component->ir_value;
       break;
    case ir_samples_identical:
       unreachable("ir_samples_identical was already handled");
    };
 
-   unsigned short op_id;
-   switch (ir->op) {
+   unsigned int image_operand_type = 0;
+   unsigned int image_operand_count = 0;
+   for (unsigned int i = 0; i < 16; ++i) {
+      unsigned int id = image_operand_ids[i];
+      if (id == 0)
+         continue;
+      if (i != SpvImageOperandsConstOffsetShift)
+         image_operand_type |= (1 << i);
+      image_operand_count++;
+   }
+
+   unsigned int type_id = visit_type(ir->type);
+   unsigned int result_id = f->id++;
+
+   switch (ir->op)
+   {
    default:
-   case ir_tex: {
-      op_id = ir->projector ? SpvOpImageSampleProjImplicitLod : SpvOpImageSampleImplicitLod;
-      unsigned int type_id = visit_type(ir->type);
-      unsigned int result_id = f->id++;
-      unsigned int ids_count = ids.count();
-      f->functions.push(op_id, ids_count + 3);
-      f->functions.push(type_id);
-      f->functions.push(result_id);
-      for (unsigned int i = 0; i < ids_count; ++i) {
-         f->functions.push(ids[i]);
+      if (image_operand_type) {
+         f->functions.push(op_id, image_operand_count + 6);
+         f->functions.push(type_id);
+         f->functions.push(result_id);
+         f->functions.push(ir->sampler->ir_value);
+         f->functions.push(coordinate_id);
+         f->functions.push(image_operand_type);
+         for (unsigned int i = 0; i < 16; ++i) {
+            unsigned int id = image_operand_ids[i];
+            if (id == 0)
+               continue;
+            f->functions.push(id);
+         }
+      } else {
+         f->functions.push(op_id, 5);
+         f->functions.push(type_id);
+         f->functions.push(result_id);
+         f->functions.push(ir->sampler->ir_value);
+         f->functions.push(coordinate_id);
       }
       ir->ir_value = result_id;
-#if 0
-      const ir_dereference_variable* var = ir->sampler->as_dereference_variable();
-      if (var && var->var->data.precision == GLSL_PRECISION_MEDIUM) {
-         f->decorates.push(SpvOpDecorate, 3);
-         f->decorates.push(result_id);
-         f->decorates.push(SpvDecorationRelaxedPrecision);
+      break;
+   case ir_txf_ms:
+      f->functions.push(SpvOpImageFetch, image_operand_count + 6);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      f->functions.push(coordinate_id);
+      f->functions.push(image_operand_type);
+      for (unsigned int i = 0; i < 16; ++i) {
+         unsigned int id = image_operand_ids[i];
+         if (id == 0)
+            continue;
+         f->functions.push(id);
       }
+      break;
+   case ir_txs:
+      f->functions.push(SpvOpImageQuerySizeLod, 5);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      f->functions.push(ir->lod_info.lod->ir_value);
+      break;
+   case ir_lod:
+      f->functions.push(SpvOpImageQueryLod, 5);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      f->functions.push(coordinate_id);
+      break;
+   case ir_tg4:
+      f->functions.push(SpvOpImageGather, image_operand_count + 7);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      f->functions.push(coordinate_id);
+      f->functions.push(component_id);
+      f->functions.push(image_operand_type);
+      for (unsigned int i = 0; i < 16; ++i) {
+         unsigned int id = image_operand_ids[i];
+         if (id == 0)
+            continue;
+         f->functions.push(id);
+      }
+      break;
+   case ir_query_levels:
+      f->functions.push(SpvOpImageQueryLevels, 4);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      break;
+   case ir_texture_samples:
+      f->functions.push(SpvOpImageQuerySamples, 4);
+      f->functions.push(type_id);
+      f->functions.push(result_id);
+      f->functions.push(ir->sampler->ir_value);
+      break;
+   }
+   ir->ir_value = result_id;
+#if 0
+   const ir_dereference_variable* var = ir->sampler->as_dereference_variable();
+   if (var && var->var->data.precision == GLSL_PRECISION_MEDIUM) {
+      f->decorates.push(SpvOpDecorate, 3);
+      f->decorates.push(result_id);
+      f->decorates.push(SpvDecorationRelaxedPrecision);
+   }
 #endif
-      break;
-   }
-   case ir_txl:
-      op_id = ir->projector ? SpvOpImageSampleProjExplicitLod : SpvOpImageSampleExplicitLod;
-      break;
-   case ir_txd:
-      op_id = SpvOpImageGather;
-      break;
-   case ir_txf:
-      op_id = SpvOpImageFetch;
-      break;
-   }
 }
 
 void ir_print_spirv_visitor::visit(ir_swizzle *ir)
