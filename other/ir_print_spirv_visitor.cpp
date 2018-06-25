@@ -1827,27 +1827,39 @@ void ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
 
 void ir_print_spirv_visitor::visit(ir_dereference_array *ir)
 {
+   ir_dereference_variable* var = ir->array->as_dereference_variable();
+
    ir->array->accept(this);
    ir->array_index->accept(this);
 
    visit_value(ir->array_index);
 
    unsigned int type_id = visit_type(ir->type);
-   unsigned int pointer_id = f->id++;
+   unsigned int pointer_id;
    if (ir->array->ir_uniform) {
       ir_constant ir_uniform(ir->array->ir_uniform - 1);
       ir_uniform.ir_value = 0;
       visit(&ir_uniform);
 
       unsigned int type_id_pointer = visit_type_pointer(ir->type, ir_var_uniform, type_id);
+      pointer_id = f->id++;
       f->functions.push(SpvOpAccessChain, 6);
       f->functions.push(type_id_pointer);
       f->functions.push(pointer_id);
       f->functions.push(f->uniform_id);
       f->functions.push(ir_uniform.ir_value);
       f->functions.push(ir->array_index->ir_value);
+   } else if (var && var->var) {
+      unsigned int type_id_pointer = visit_type_pointer(ir->type, var->var->data.mode, type_id);
+      pointer_id = f->id++;
+      f->functions.push(SpvOpAccessChain, 5);
+      f->functions.push(type_id_pointer);
+      f->functions.push(pointer_id);
+      f->functions.push(ir->array->ir_pointer);
+      f->functions.push(ir->array_index->ir_value);
    } else {
       unsigned int type_id_pointer = visit_type_pointer(ir->type, ir_var_auto, type_id);
+      pointer_id = f->id++;
       f->functions.push(SpvOpAccessChain, 5);
       f->functions.push(type_id_pointer);
       f->functions.push(pointer_id);
