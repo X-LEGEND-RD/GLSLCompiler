@@ -564,6 +564,11 @@ void ir_print_glsl_visitor::visit(ir_texture *ir)
    if (ir->op != ir_txs && ir->op != ir_query_levels && ir->op != ir_texture_samples) {
 
       buf->printf(", ");
+
+      if (ir->projector) {
+         buf->printf("vec3(");
+      }
+
       ir->coordinate->accept(this);
 
       if (ir->offset != NULL) {
@@ -577,6 +582,7 @@ void ir_print_glsl_visitor::visit(ir_texture *ir)
       if (ir->projector) {
          buf->printf(", ");
          ir->projector->accept(this);
+         buf->printf(")");
       }
    }
 
