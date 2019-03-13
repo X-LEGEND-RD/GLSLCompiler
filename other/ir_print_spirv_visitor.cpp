@@ -1011,7 +1011,7 @@ void ir_print_spirv_visitor::visit(ir_function_signature *ir)
 
    // TypeName
    unsigned int function_name_id = 0;
-   if (stricmp(ir->function_name(), "main") == 0) {
+   if (strcasecmp(ir->function_name(), "main") == 0) {
       function_name_id = f->main_id = f->id++;
    } else {
       function_name_id = f->id++;
