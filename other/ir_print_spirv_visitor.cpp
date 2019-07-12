@@ -28,6 +28,7 @@
 #include "util/hash_table.h"
 #include "compiler/spirv/spirv.h"
 #include "compiler/spirv/GLSL.std.450.h"
+#include "ir_optimization.h"
 
 static const unsigned int reflection_float_type[4][4] = {
    GL_FLOAT,         GL_FLOAT_VEC2,    GL_FLOAT_VEC3,    GL_FLOAT_VEC4,
@@ -181,6 +182,9 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, gl_shader_stage stag
    f->extensions.push(SpvOpMemoryModel, 3);
    f->extensions.push(SpvAddressingModelLogical);
    f->extensions.push(SpvMemoryModelGLSL450);
+
+   // lower martix to vector but skipping multiply
+   do_mat_op_to_vec(instructions, true);
 
    // spirv visitor
    ir_print_spirv_visitor v(f);
@@ -1902,7 +1906,7 @@ void ir_print_spirv_visitor::visit(ir_assignment *ir)
    visit_value(ir->rhs);
 
    unsigned int value_id;
-   bool full_write = (_mesa_bitcount(ir->write_mask) == ir->lhs->type->components());
+   bool full_write = (_mesa_bitcount(ir->write_mask) == ir->lhs->type->components()) || (ir->write_mask == 0 && ir->lhs->ir_value == 0);
    if (full_write && (ir->lhs->type->components() == ir->rhs->type->components())) {
 
       value_id = ir->rhs->ir_value;
