@@ -22,36 +22,23 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
 #ifndef IR_PRINT_GLSL_VISITOR_H
 #define IR_PRINT_GLSL_VISITOR_H
 
 #include "ir.h"
 #include "ir_visitor.h"
 
-extern "C" {
 #include "program/symbol_table.h"
-}
 
-class string_buffer {
-public:
-   string_buffer();
-   virtual ~string_buffer();
-   void printf(const char* format, ...);
-   const char* string() const;
-   unsigned int offset() const;
-protected:
-   char* buf;
-   unsigned int step;
-   unsigned int capacity;
-};
+extern "C" void
+_mesa_print_glsl(FILE * f, exec_list * instructions, struct _mesa_glsl_parse_state* state);
 
 /**
  * Abstract base class of visitors of IR instruction trees
  */
 class ir_print_glsl_visitor : public ir_visitor {
 public:
-   ir_print_glsl_visitor(string_buffer *buf, struct _mesa_glsl_parse_state *state);
+   ir_print_glsl_visitor(FILE *f);
    virtual ~ir_print_glsl_visitor();
 
    void indent(void);
@@ -79,6 +66,7 @@ public:
    virtual void visit(ir_call *);
    virtual void visit(ir_return *);
    virtual void visit(ir_discard *);
+   virtual void visit(ir_demote *);
    virtual void visit(ir_if *);
    virtual void visit(ir_loop *);
    virtual void visit(ir_loop_jump *);
@@ -97,21 +85,13 @@ private:
    const char *unique_name(ir_variable *var);
 
    /** A mapping from ir_variable * -> unique printable names. */
-   int unique_parameter_name_number;
-   int unique_name_number;
    hash_table *printable_names;
    _mesa_symbol_table *symbols;
 
    void *mem_ctx;
-   string_buffer *buf;
-   struct _mesa_glsl_parse_state *state;
+   FILE *f;
 
    int indentation;
 };
-
-extern "C" {
-void
-_mesa_print_glsl(string_buffer *buf, exec_list *instructions, struct _mesa_glsl_parse_state *state);
-}
 
 #endif /* IR_PRINT_GLSL_VISITOR_H */
