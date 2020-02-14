@@ -1,9 +1,9 @@
-# xxGLSLCompiler
+# GLSLCompiler
 GLSL Compiler from The Mesa 3D Graphics Library https://www.mesa3d.org/
 
 ### Usage
 ```
-usage: xxGLSLCompiler.EXE [options] <file.vert | file.tesc | file.tese | file.geom | file.frag | file.comp>
+usage: GLSLCompiler.EXE [options] <file.vert | file.tesc | file.tese | file.geom | file.frag | file.comp>
 
 Possible options are:
     --dump-ast
@@ -29,7 +29,7 @@ void main()
   gl_Position = vec4(Position, 1.0);
 }
 
-C:\>xxGLSLCompiler.exe --version 300 --dump-spirv test.vert
+C:\>GLSLCompiler.exe --version 300 --dump-spirv test.vert
 ; SPIR-V
 ; Version: 1.0
 ; Generator: X-LEGEND Mesa-IR/SPIR-V Translator; 0

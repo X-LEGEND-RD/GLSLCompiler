@@ -1,5 +1,6 @@
 .vs/
 bin/
+build/build/
 lib/
 temp/
 *.vcxproj.user

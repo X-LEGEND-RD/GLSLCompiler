@@ -759,9 +759,10 @@ ir_print_spirv_visitor::visit_value(ir_rvalue *ir)
       unsigned int value_id = f->id++;
 
       f->codes.opcode(4, SpvOpLoad, type_id, value_id, ir->ir_pointer);
-      visit_precision(ir->ir_value, ir->type->base_type, GLSL_PRECISION_NONE);
 
       ir->ir_value = value_id;
+
+      visit_precision(ir->ir_value, ir->type->base_type, GLSL_PRECISION_NONE);
    }
 }
 
@@ -1816,14 +1817,18 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
          unsigned int type_id = visit_type(ir->type);
          unsigned int constant_id = f->id++;
          unsigned int value;
-         switch (ir->type->base_type) {
-         case GLSL_TYPE_UINT:  value = ir->value.u[0];         break;
-         case GLSL_TYPE_INT:   value = ir->value.i[0];         break;
-         case GLSL_TYPE_FLOAT: value = *(int*)&ir->value.f[0]; break;
-         default:
-            unreachable("Invalid constant type");
+         if (ir->type->base_type == GLSL_TYPE_BOOL) {
+            f->types.opcode(3, ir->value.b[0] ? SpvOpConstantTrue : SpvOpConstantFalse, type_id, constant_id);
+         } else {
+            switch (ir->type->base_type) {
+            case GLSL_TYPE_UINT:  value = ir->value.u[0];         break;
+            case GLSL_TYPE_INT:   value = ir->value.i[0];         break;
+            case GLSL_TYPE_FLOAT: value = *(int*)&ir->value.f[0]; break;
+            default:
+               unreachable("Invalid constant type");
+            }
+            f->types.opcode(4, SpvOpConstant, type_id, constant_id, value);
          }
-         f->types.opcode(4, SpvOpConstant, type_id, constant_id, value);
 
          ir->ir_value = constant_id;
 #if 0
