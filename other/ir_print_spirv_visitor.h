@@ -44,8 +44,10 @@ public:
    void opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, binary_buffer& buffer);
    void opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, binary_buffer& buffer);
    void text(unsigned short opcode, const char* text);
-   void text(unsigned short opcode, unsigned int id, const char* text);
-   void text(unsigned short opcode, unsigned int id, unsigned int index, const char* text);
+   void text(unsigned short opcode, unsigned int v1, const char* text);
+   void text(unsigned short opcode, unsigned int v1, unsigned int v2, const char* text);
+   void text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, const char* text);
+   void text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, const char* text);
    void push(unsigned short low, unsigned short high);
    void push(unsigned int value);
    void push(const char *text);

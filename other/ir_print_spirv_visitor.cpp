@@ -196,23 +196,46 @@ void binary_buffer::text(unsigned short opcode, const char *text)
    push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int id, const char *text)
+void binary_buffer::text(unsigned short opcode, unsigned int v1, const char *text)
 {
    unsigned int length = (int)strlen(text);
    unsigned int count = (length + sizeof(int)) / sizeof(int);
    push(opcode, count + 2);
-   push(id);
+   push(v1);
    push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int id, unsigned int index, const char *text)
+void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, const char *text)
 {
    unsigned int length = (int)strlen(text);
    unsigned int count = (length + sizeof(int)) / sizeof(int);
    push(opcode, count + 3);
-   push(id);
-   push(index);
+   push(v1);
+   push(v2);
    push(text);
+}
+
+void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, const char* text)
+{
+    unsigned int length = (int)strlen(text);
+    unsigned int count = (length + sizeof(int)) / sizeof(int);
+    push(opcode, count + 4);
+    push(v1);
+    push(v2);
+    push(v3);
+    push(text);
+}
+
+void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, const char* text)
+{
+    unsigned int length = (int)strlen(text);
+    unsigned int count = (length + sizeof(int)) / sizeof(int);
+    push(opcode, count + 5);
+    push(v1);
+    push(v2);
+    push(v3);
+    push(v4);
+    push(text);
 }
 
 void binary_buffer::push(unsigned short low, unsigned short high)
