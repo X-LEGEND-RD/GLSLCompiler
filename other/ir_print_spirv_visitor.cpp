@@ -856,6 +856,9 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
          ir->ir_uniform_location = f->uniforms.count();
          f->uniforms.push(type_id);
 
+         unsigned int base_alignment = ir->type->std430_base_alignment(false);
+         f->uniform_offset = (f->uniform_offset + base_alignment - 1) & ~(base_alignment - 1);
+
          f->names.text(SpvOpMemberName, f->uniform_struct_id, ir->ir_uniform_location, ir->name);
          f->decorates.opcode(5, SpvOpMemberDecorate, f->uniform_struct_id, ir->ir_uniform_location, SpvDecorationOffset, f->uniform_offset);
 
@@ -864,7 +867,7 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
             f->decorates.opcode(5, SpvOpMemberDecorate, f->uniform_struct_id, ir->ir_uniform_location, SpvDecorationMatrixStride, 16);
          }
 
-         f->uniform_offset += ir->type->std430_array_stride(false);
+         f->uniform_offset += ir->type->std430_size(false);
       }
    } else {
       unsigned int pointer_id = visit_type_pointer(ir->type, ir->data.mode, type_id);
