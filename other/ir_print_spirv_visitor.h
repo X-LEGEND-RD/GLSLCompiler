@@ -175,9 +175,9 @@ public:
 public:
    unsigned int visit_type(const struct glsl_type *type, GLenum format = GL_FLOAT);
    unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int type_id, GLenum format = GL_FLOAT);
-   unsigned int visit_constant_value(float value);
-   unsigned int visit_constant_value(int value);
-   unsigned int visit_constant_value(unsigned int value);
+   unsigned int visit_constant_value(float value, unsigned vector_elements = 1);
+   unsigned int visit_constant_value(int value, unsigned vector_elements = 1);
+   unsigned int visit_constant_value(unsigned int value, unsigned vector_elements = 1);
    void visit_value(ir_rvalue *ir);
    void visit_precision(unsigned int id, unsigned int type, unsigned int precision);
 

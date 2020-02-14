@@ -742,9 +742,9 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
 }
 
 unsigned int
-ir_print_spirv_visitor::visit_constant_value(float value)
+ir_print_spirv_visitor::visit_constant_value(float value, unsigned vector_elements)
 {
-   ir_constant ir_constant_value(value);
+   ir_constant ir_constant_value(value, vector_elements);
    ir_constant_value.ir_value = 0;
    visit(&ir_constant_value);
 
@@ -752,9 +752,9 @@ ir_print_spirv_visitor::visit_constant_value(float value)
 }
 
 unsigned int
-ir_print_spirv_visitor::visit_constant_value(int value)
+ir_print_spirv_visitor::visit_constant_value(int value, unsigned vector_elements)
 {
-   ir_constant ir_constant_value(value);
+   ir_constant ir_constant_value(value, vector_elements);
    ir_constant_value.ir_value = 0;
    visit(&ir_constant_value);
 
@@ -762,9 +762,9 @@ ir_print_spirv_visitor::visit_constant_value(int value)
 }
 
 unsigned int
-ir_print_spirv_visitor::visit_constant_value(unsigned int value)
+ir_print_spirv_visitor::visit_constant_value(unsigned int value, unsigned vector_elements)
 {
-   ir_constant ir_constant_value(value);
+   ir_constant ir_constant_value(value, vector_elements);
    ir_constant_value.ir_value = 0;
    visit(&ir_constant_value);
 
@@ -1021,9 +1021,9 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       }
 
       unsigned int value_id = f->id++;
-      unsigned int opcode = float_type ? GLSLstd450FClamp : signed_type ? GLSLstd450SClamp : GLSLstd450UClamp;
-      unsigned int zero_id = visit_constant_value(0.0f);
-      unsigned int one_id = visit_constant_value(1.0f);
+      unsigned int opcode = GLSLstd450FClamp;
+      unsigned int zero_id = visit_constant_value(0.0f, ir->type->vector_elements);
+      unsigned int one_id = visit_constant_value(1.0f, ir->type->vector_elements);
 
       f->codes.opcode(8, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], zero_id, one_id);
 
