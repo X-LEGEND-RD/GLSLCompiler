@@ -1,6 +1,6 @@
-#line 1 "glcpp-lex.c"
+#line 1 "compiler/glsl/glcpp/glcpp-lex.c"
 
-#line 3 "glcpp-lex.c"
+#line 3 "compiler/glsl/glcpp/glcpp-lex.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -1013,7 +1013,7 @@ glcpp_lex_update_state_per_token (glcpp_parser_t *parser, int token)
 }
 
 
-#line 1016 "glcpp-lex.c"
+#line 1016 "compiler/glsl/glcpp/glcpp-lex.c"
 #line 178 "../mesa/src/compiler/glsl/glcpp/glcpp-lex.l"
 	/* Note: When adding any start conditions to this list, you must also
 	 * update the "Internal compiler error" catch-all rule near the end of
@@ -1025,7 +1025,7 @@ match longer strings take priority over those matching shorter
 strings, we have to be careful to avoid OTHER matching and hiding
 something that CPP does care about. So we simply exclude all
 characters that appear in any other expressions. */
-#line 1028 "glcpp-lex.c"
+#line 1028 "compiler/glsl/glcpp/glcpp-lex.c"
 
 #define INITIAL 0
 #define COMMENT 1
@@ -1380,7 +1380,7 @@ YY_DECL
 	}
 
 	/* Single-line comments */
-#line 1383 "glcpp-lex.c"
+#line 1383 "compiler/glsl/glcpp/glcpp-lex.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1977,7 +1977,7 @@ YY_RULE_SETUP
 #line 616 "../mesa/src/compiler/glsl/glcpp/glcpp-lex.l"
 YY_FATAL_ERROR( "flex scanner jammed" );
 	YY_BREAK
-#line 1980 "glcpp-lex.c"
+#line 1980 "compiler/glsl/glcpp/glcpp-lex.c"
 case YY_STATE_EOF(DONE):
 case YY_STATE_EOF(NEWLINE_CATCHUP):
 case YY_STATE_EOF(UNREACHABLE):

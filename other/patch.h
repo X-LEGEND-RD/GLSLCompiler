@@ -29,9 +29,11 @@
 #define HAVE_SCONS
 #define HAVE_TIMESPEC_GET
 
+#include <c99_math.h>
 #include <getopt.h>
 
 #ifdef __cplusplus
+#undef signbit
 #include <glsl/list.h>
 class exec_node_patch : public exec_node {
 public:
@@ -57,17 +59,18 @@ struct standalone_options_patch {
    int dump_hir;
    int dump_lir;
    int dump_builder;
+   int do_link;
+   int just_log;
+   int lower_precision;
    int dump_glsl;
    int dump_spirv;
    int dump_spirv_validation;
    int dump_spirv_glsl;
-   int do_link;
-   int just_log;
 };
 
 #define standalone_options _concat(standalone_options, __LINE__)
 #define standalone_options31 standalone_options_old
-#define standalone_options44 standalone_options_patch
+#define standalone_options45 standalone_options_patch
 #include "standalone.h"
 #undef standalone_options
 #define standalone_options standalone_options_patch
@@ -76,6 +79,6 @@ void
 compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const struct standalone_options_patch *options);
 
 #define compile_shader _concat(compile_shader, __LINE__)
-#define compile_shader501(ctx, shader) compile_shader_patch(ctx, shader, options)
+#define compile_shader497(ctx, shader) compile_shader_patch(ctx, shader, options)
 
 #endif /* PATCH_H */

@@ -45,13 +45,14 @@ const struct option compiler_opts[] = {
    { "dump-hir", no_argument, &options.dump_hir, 1 },
    { "dump-lir", no_argument, &options.dump_lir, 1 },
    { "dump-builder", no_argument, &options.dump_builder, 1 },
-   { "dump-glsl", no_argument, &options.dump_glsl, 1 },
-   { "dump-spirv", no_argument, &options.dump_spirv, 1 },
-   { "dump-spirv-validation", no_argument, &options.dump_spirv_validation, 1 },
-   { "dump-spirv-glsl", no_argument, &options.dump_spirv_glsl, 1 },
    { "link",     no_argument, &options.do_link,  1 },
    { "just-log", no_argument, &options.just_log, 1 },
+   { "lower-precision", no_argument, &options.lower_precision, 1 },
    { "version",  required_argument, NULL, 'v' },
+   { "dump-glsl",             no_argument, &options.dump_glsl, 1 },
+   { "dump-spirv",            no_argument, &options.dump_spirv, 1 },
+   { "dump-spirv-validation", no_argument, &options.dump_spirv_validation, 1 },
+   { "dump-spirv-glsl",       no_argument, &options.dump_spirv_glsl, 1 },
    { NULL, 0, NULL, 0 }
 };
 
@@ -116,23 +117,18 @@ main(int argc, char * const* argv)
 #include "ir_print_spirv_visitor.h"
 
 extern "C" void
-_mesa_error_no_memory(const char *caller)
+_debug_assert_fail(const char *expr, const char *file, unsigned line,
+                   const char *function)
 {
-// GET_CURRENT_CONTEXT(ctx);
-// _mesa_error(ctx, GL_OUT_OF_MEMORY, "out of memory in %s", caller);
+   fprintf(stderr, "%s:%u:%s: Assertion `%s' failed.\n",
+           file, line, function, expr);
+   os_abort();
 }
 
 extern "C" void
-_mesa_sha1_format(char *buf, const unsigned char *sha1)
+_mesa_error_no_memory(const char *caller)
 {
-   static const char hex_digits[] = "0123456789abcdef";
-   int i;
-
-   for (i = 0; i < 40; i += 2) {
-      buf[i] = hex_digits[sha1[i >> 1] >> 4];
-      buf[i + 1] = hex_digits[sha1[i >> 1] & 0x0f];
-   }
-   buf[i] = '\0';
+   fprintf(stderr, "Mesa error: out of memory in %s", caller);
 }
 
 void
@@ -165,9 +161,9 @@ compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const str
 
       if (options->dump_spirv) {
 #ifdef _WIN32
-         system("spirv-dis.exe output.spv");
+         system("spirv-dis.exe --no-color output.spv");
 #else
-         system("spirv-dis output.spv");
+         system("spirv-dis --no-color output.spv");
 #endif
       }
       if (options->dump_spirv_validation) {

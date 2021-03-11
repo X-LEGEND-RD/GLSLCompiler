@@ -84,7 +84,7 @@
 #define LINE 337
 #define COLON 338
 #define EOL 339
-#define INTERFACE 340
+#define INTERFACE_TOK 340
 #define OUTPUT 341
 #define PRAGMA_DEBUG_ON 342
 #define PRAGMA_DEBUG_OFF 343
