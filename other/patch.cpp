@@ -117,15 +117,6 @@ main(int argc, char * const* argv)
 #include "ir_print_spirv_visitor.h"
 
 extern "C" void
-_debug_assert_fail(const char *expr, const char *file, unsigned line,
-                   const char *function)
-{
-   fprintf(stderr, "%s:%u:%s: Assertion `%s' failed.\n",
-           file, line, function, expr);
-   os_abort();
-}
-
-extern "C" void
 _mesa_error_no_memory(const char *caller)
 {
    fprintf(stderr, "Mesa error: out of memory in %s", caller);
@@ -141,15 +132,15 @@ compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const str
                              options->dump_hir, true);
 
    /* Print out the resulting IR */
-   if (!state->error && options->dump_lir) {
+   if (shader->CompileStatus == COMPILE_SUCCESS && options->dump_lir) {
       _mesa_print_ir(stdout, shader->ir, state);
    }
 
-   if (!state->error && options->dump_glsl) {
+   if (shader->CompileStatus == COMPILE_SUCCESS && options->dump_glsl) {
       _mesa_print_glsl(stdout, fprintf, shader->ir, state);
    }
 
-   if (!state->error && (options->dump_spirv || options->dump_spirv_validation || options->dump_spirv_glsl)) {
+   if (shader->CompileStatus == COMPILE_SUCCESS && (options->dump_spirv || options->dump_spirv_validation || options->dump_spirv_glsl)) {
       spirv_buffer buffer;
       _mesa_print_spirv(&buffer, shader->ir, state, 0);
 
