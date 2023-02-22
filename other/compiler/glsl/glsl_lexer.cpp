@@ -2488,7 +2488,7 @@ KEYWORD(130, 300, 130, 300, SMOOTH);
 case 78:
 YY_RULE_SETUP
 #line 452 "../mesa/src/compiler/glsl/glsl_lexer.ll"
-KEYWORD_WITH_ALT(130, 300, 130, 0, yyextra->EXT_gpu_shader4_enable, NOPERSPECTIVE);
+KEYWORD_WITH_ALT(130, 300, 130, 0, yyextra->EXT_gpu_shader4_enable || yyextra->NV_shader_noperspective_interpolation_enable, NOPERSPECTIVE);
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
@@ -2850,22 +2850,22 @@ TYPE_WITH_ALT(130, 300, 420, 0, yyextra->ARB_shader_image_load_store_enable || y
 case 148:
 YY_RULE_SETUP
 #line 540 "../mesa/src/compiler/glsl/glsl_lexer.ll"
-KEYWORD(130, 300, 0, 0, IMAGE1DSHADOW);
+KEYWORD(130, 0, 420, 0, IMAGE1DSHADOW);
 	YY_BREAK
 case 149:
 YY_RULE_SETUP
 #line 541 "../mesa/src/compiler/glsl/glsl_lexer.ll"
-KEYWORD(130, 300, 0, 0, IMAGE2DSHADOW);
+KEYWORD(130, 0, 420, 0, IMAGE2DSHADOW);
 	YY_BREAK
 case 150:
 YY_RULE_SETUP
 #line 542 "../mesa/src/compiler/glsl/glsl_lexer.ll"
-KEYWORD(130, 300, 0, 0, IMAGE1DARRAYSHADOW);
+KEYWORD(130, 0, 420, 0, IMAGE1DARRAYSHADOW);
 	YY_BREAK
 case 151:
 YY_RULE_SETUP
 #line 543 "../mesa/src/compiler/glsl/glsl_lexer.ll"
-KEYWORD(130, 300, 0, 0, IMAGE2DARRAYSHADOW);
+KEYWORD(130, 0, 420, 0, IMAGE2DARRAYSHADOW);
 	YY_BREAK
 case 152:
 YY_RULE_SETUP

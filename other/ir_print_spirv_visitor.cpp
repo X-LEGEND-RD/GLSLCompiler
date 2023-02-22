@@ -1090,6 +1090,12 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       switch (ir->operation) {
       default:
          unreachable("unknown operation");
+      case ir_unop_bit_not:
+         f->codes.opcode(4, SpvOpNot, type_id, value_id, operands[0]);
+         break;
+      case ir_unop_logic_not:
+         f->codes.opcode(4, SpvOpLogicalNot, type_id, value_id, operands[0]);
+         break;
       case ir_unop_neg:
          opcode = float_type ? SpvOpFNegate : SpvOpSNegate;
 
@@ -1544,9 +1550,14 @@ ir_print_spirv_visitor::visit(ir_swizzle *ir)
    unsigned int type_id = visit_type(ir->type);
    unsigned int value_id = f->id++;
    unsigned int source_id = ir->val->ir_value;
+   unsigned int source_type_id = visit_type(ir->val->type);
 
    if (ir->mask.num_components == 1) {
-      f->codes.opcode(5, SpvOpCompositeExtract, type_id, value_id, source_id, ir->mask.x);
+      if (type_id == source_type_id) {
+         f->codes.opcode(4, SpvOpCopyObject, type_id, value_id, source_id);
+      } else {
+         f->codes.opcode(5, SpvOpCompositeExtract, type_id, value_id, source_id, ir->mask.x);
+      }
 
       ir->ir_value = value_id;
       return;
@@ -1752,9 +1763,6 @@ ir_print_spirv_visitor::visit(ir_dereference_record *ir)
 void
 ir_print_spirv_visitor::visit(ir_assignment *ir)
 {
-   if (ir->condition)
-      ir->condition->accept(this);
-
    ir->rhs->accept(this);
    ir->lhs->accept(this);
    visit_value(ir->rhs);

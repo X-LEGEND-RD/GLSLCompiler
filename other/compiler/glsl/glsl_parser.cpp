@@ -4454,10 +4454,10 @@ case 149:
                                 "valid in fragment shaders");
             }
 
-	    if (state->INTEL_conservative_rasterization_enable) {
-	       yyval.type_qualifier.flags.q.inner_coverage = 1;
-	    } else {
-	       _mesa_glsl_error(& yystack.p_mark[0], state,
+            if (state->INTEL_conservative_rasterization_enable) {
+               yyval.type_qualifier.flags.q.inner_coverage = 1;
+            } else {
+               _mesa_glsl_error(& yystack.p_mark[0], state,
                                 "inner_coverage layout qualifier present, "
                                 "but the INTEL_conservative_rasterization extension "
                                 "is not enabled.");
@@ -4472,7 +4472,7 @@ case 149:
             }
 
             if (state->ARB_post_depth_coverage_enable ||
-		state->INTEL_conservative_rasterization_enable) {
+                state->INTEL_conservative_rasterization_enable) {
                yyval.type_qualifier.flags.q.post_depth_coverage = 1;
             } else {
                _mesa_glsl_error(& yystack.p_mark[0], state,
@@ -6326,10 +6326,12 @@ case 311:
       if (!state->out_qualifier->push_to_global(& yystack.p_mark[0], state)) {
          YYERROR;
       }
+
+      (void)yynerrs;
    }
-#line 6322 "compiler/glsl/glsl_parser.cpp"
-break;
 #line 6324 "compiler/glsl/glsl_parser.cpp"
+break;
+#line 6326 "compiler/glsl/glsl_parser.cpp"
     default:
         break;
     }

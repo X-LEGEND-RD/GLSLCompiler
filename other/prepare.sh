@@ -12,6 +12,11 @@ mkdir compiler/glsl/glcpp &>/dev/null
 flex -o compiler/glsl/glcpp/glcpp-lex.c ../mesa/src/compiler/glsl/glcpp/glcpp-lex.l
 byacc -o compiler/glsl/glcpp/glcpp-parse.c -p glcpp_parser_ --defines=compiler/glsl/glcpp/glcpp-parse.h ../mesa/src/compiler/glsl/glcpp/glcpp-parse.y
 
+mkdir compiler/nir &>/dev/null
+python3 ../mesa/src/compiler/nir/nir_intrinsics_h.py --outdir compiler/nir
+python3 ../mesa/src/compiler/nir/nir_intrinsics_indices_h.py --outdir compiler/nir
+python3 ../mesa/src/compiler/nir/nir_opcodes_h.py >compiler/nir/nir_opcodes.h
+
 mkdir util &>/dev/null
 python3 ../mesa/src/util/format_srgb.py >util/format_srgb.c
 

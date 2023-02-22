@@ -27,10 +27,8 @@
 #define PATCH_H
 
 #define HAVE_PTHREAD
-#define HAVE_SCONS
-#define HAVE_TIMESPEC_GET
+#define HAVE_STRUCT_TIMESPEC
 
-#include <c99_math.h>
 #include <getopt.h>
 
 #ifdef __cplusplus
@@ -80,6 +78,6 @@ void
 compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const struct standalone_options_patch *options);
 
 #define compile_shader _concat(compile_shader, __LINE__)
-#define compile_shader498(ctx, shader) compile_shader_patch(ctx, shader, options)
+#define compile_shader496(ctx, shader) compile_shader_patch(ctx, shader, options)
 
 #endif /* PATCH_H */

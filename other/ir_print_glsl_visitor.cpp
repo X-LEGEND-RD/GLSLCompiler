@@ -464,9 +464,6 @@ ir_print_glsl_visitor::visit(ir_dereference_record *ir)
 void
 ir_print_glsl_visitor::visit(ir_assignment *ir)
 {
-   if (ir->condition)
-      ir->condition->accept(this);
-
    ir->lhs->accept(this);
 
    if (ir->write_mask != ((1 << ir->lhs->type->components()) - 1)) {
