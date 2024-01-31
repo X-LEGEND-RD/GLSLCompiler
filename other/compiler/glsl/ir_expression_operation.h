@@ -167,7 +167,6 @@ enum ir_expression_operation {
    ir_binop_min,
    ir_binop_max,
    ir_binop_pow,
-   ir_binop_ubo_load,
    ir_binop_ldexp,
    ir_binop_vector_extract,
    ir_binop_interpolate_at_offset,

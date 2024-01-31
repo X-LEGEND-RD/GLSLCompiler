@@ -24,6 +24,7 @@
 #include "ir_print_spirv_visitor.h"
 #include "compiler/glsl_types.h"
 #include "glsl_parser_extras.h"
+#include "linker_util.h"
 #include "main/macros.h"
 #include "util/hash_table.h"
 #include "util/u_string.h"
@@ -469,18 +470,18 @@ ir_print_spirv_visitor::visit(ir_rvalue *)
 unsigned int
 ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
 {
-   if (type->is_array()) {
+   if (glsl_type_is_array(type)) {
       unsigned int depth = 0;
       const struct glsl_type* base_type = type;
       do {
          depth++;
          base_type = base_type->fields.array;
-      } while (base_type->is_array());
+      } while (glsl_type_is_array(base_type));
 
       unsigned int* vector_ids;
-      if (base_type->is_float()) {
+      if (glsl_type_is_float(base_type)) {
          vector_ids = f->float_id[depth][base_type->vector_elements];
-      } else if (base_type->is_integer()) {
+      } else if (glsl_type_is_integer(base_type)) {
          if (glsl_unsigned_base_type_of(base_type->base_type) == base_type->base_type) {
             vector_ids = f->unsigned_int_id[depth][base_type->vector_elements];
          } else {
@@ -494,19 +495,19 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
       if (vector_id == 0) {
          vector_id = f->id++;
          unsigned int base_type_id = visit_type(type->fields.array);
-         unsigned int array_size_id = visit_constant_value(type->array_size());
+         unsigned int array_size_id = visit_constant_value(glsl_array_size(type));
 
          f->types.opcode(4, SpvOpTypeArray, vector_id, base_type_id, array_size_id);
-         f->decorates.opcode(4, SpvOpDecorate, vector_id, SpvDecorationArrayStride, type->fields.array->std430_array_stride(false));
+         f->decorates.opcode(4, SpvOpDecorate, vector_id, SpvDecorationArrayStride, glsl_get_std430_array_stride(type->fields.array, false));
 
          vector_ids[base_type->matrix_columns] = vector_id;
       }
       return vector_id;
-   } else if (type->is_image() || type->is_sampler()) {
-      unsigned int vector_elements = type->is_image() ? get_vector_elements_from_image_format(format) : 0;
+   } else if (glsl_type_is_image(type) || glsl_type_is_sampler(type)) {
+      unsigned int vector_elements = glsl_type_is_image(type) ? get_vector_elements_from_image_format(format) : 0;
       unsigned int image_id = f->image_id[type->sampler_dimensionality][type->sampled_type][vector_elements];
       if (image_id == 0) {
-         unsigned int type_id = visit_type(type->is_image() ? glsl_type::get_instance(type->sampled_type, 1, 1) : glsl_type::float_type);
+         unsigned int type_id = visit_type(glsl_type_is_image(type) ? glsl_simple_type(type->sampled_type, 1, 1) : &glsl_type_builtin_float);
          unsigned int dim_id = SpvDim1D;
          unsigned int format_id = SpvImageFormatUnknown;
          switch (type->sampler_dimensionality) {
@@ -560,7 +561,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
          }
          image_id = f->id++;
 
-         if (type->is_image()) {
+         if (glsl_type_is_image(type)) {
             f->types.opcode(9, SpvOpTypeImage, image_id, type_id, dim_id, 0, 0, 0, 2, format_id);
 
             if (format_id == SpvImageFormatUnknown)
@@ -572,7 +573,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
 
          f->image_id[type->sampler_dimensionality][type->sampled_type][vector_elements] = image_id;
       }
-      if (type->is_image())
+      if (glsl_type_is_image(type))
          return image_id;
 
       unsigned int sampled_image_id = f->sampler_id[type->sampler_dimensionality];
@@ -584,7 +585,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
          f->sampler_id[type->sampler_dimensionality] = sampled_image_id;
       }
       return sampled_image_id;
-   } else if (type->is_boolean()) {
+   } else if (glsl_type_is_boolean(type)) {
       unsigned int bool_id = f->bool_id;
       if (bool_id == 0) {
          bool_id = f->id++;
@@ -594,7 +595,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
          f->bool_id = bool_id;
       }
       return bool_id;
-   } else if (type->is_void()) {
+   } else if (glsl_type_is_void(type)) {
       unsigned int void_id = f->void_id;
       if (void_id == 0) {
          void_id = f->id++;
@@ -609,7 +610,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
    // Scalar
    unsigned int* vector_ids;
    unsigned int scalar_id;
-   if (type->is_float()) {
+   if (glsl_type_is_float(type)) {
       vector_ids = f->float_id[0][type->vector_elements];
       scalar_id = f->float_id[0][1][1];
       if (scalar_id == 0) {
@@ -619,7 +620,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
 
          f->float_id[0][1][1] = scalar_id;
       }
-   } else if (type->is_integer()) {
+   } else if (glsl_type_is_integer(type)) {
       if (glsl_unsigned_base_type_of(type->base_type) == type->base_type) {
          vector_ids = f->unsigned_int_id[0][type->vector_elements];
          scalar_id = f->unsigned_int_id[0][1][1];
@@ -674,16 +675,16 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
    unsigned int storage_class = storage_mode[mode];
    unsigned int depth = 0;
 
-   if (type->is_array()) {
+   if (glsl_type_is_array(type)) {
       type_id = visit_type(type);
       do {
          depth++;
          type = type->fields.array;
-      } while (type->is_array());
+      } while (glsl_type_is_array(type));
    }
 
-   if (type->is_image()) {
-      unsigned int vector_elements = type->is_image() ? get_vector_elements_from_image_format(format) : 0;
+   if (glsl_type_is_image(type)) {
+      unsigned int vector_elements = glsl_type_is_image(type) ? get_vector_elements_from_image_format(format) : 0;
       unsigned int pointer_id = f->pointer_image_id[type->sampler_dimensionality][type->sampled_type][vector_elements];
       if (pointer_id == 0) {
          pointer_id = f->id++;
@@ -693,7 +694,7 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
          f->pointer_image_id[type->sampler_dimensionality][type->sampled_type][vector_elements] = pointer_id;
       }
       return pointer_id;
-   } else if (type->is_sampler()) {
+   } else if (glsl_type_is_sampler(type)) {
       unsigned int pointer_id = f->pointer_sampler_id[type->sampler_dimensionality];
       if (pointer_id == 0) {
          pointer_id = f->id++;
@@ -703,7 +704,7 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
          f->pointer_sampler_id[type->sampler_dimensionality] = pointer_id;
       }
       return pointer_id;
-   } else if (type->is_boolean()) {
+   } else if (glsl_type_is_boolean(type)) {
       unsigned int pointer_id = f->pointer_bool_id[storage_class];
       if (pointer_id == 0) {
          pointer_id = f->id++;
@@ -716,9 +717,9 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
    }
 
    unsigned int* pointer_ids;
-   if (type->is_float()) {
+   if (glsl_type_is_float(type)) {
       pointer_ids = f->pointer_float_id[storage_class][depth][type->vector_elements];
-   } else if (type->is_integer()) {
+   } else if (glsl_type_is_integer(type)) {
       if (glsl_unsigned_base_type_of(type->base_type) == type->base_type) {
          pointer_ids = f->pointer_unsigned_int_id[storage_class][depth][type->vector_elements];
       } else {
@@ -818,7 +819,7 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
    unsigned int type_id = visit_type(ir->type, ir->data.image_format);
 
    if (ir->data.mode == ir_var_uniform) {
-      if (ir->type->is_image() || ir->type->is_sampler()) {
+      if (glsl_type_is_image(ir->type) || glsl_type_is_sampler(ir->type)) {
          if (ir->data.explicit_binding) {
            ir->ir_binding_point = ir->data.binding;
            if (f->binding_id <= ir->data.binding)
@@ -856,18 +857,18 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
          ir->ir_uniform_location = f->uniforms.count();
          f->uniforms.push(type_id);
 
-         unsigned int base_alignment = ir->type->std430_base_alignment(false);
+         unsigned int base_alignment = glsl_get_std430_base_alignment(ir->type, false);
          f->uniform_offset = (f->uniform_offset + base_alignment - 1) & ~(base_alignment - 1);
 
          f->names.text(SpvOpMemberName, f->uniform_struct_id, ir->ir_uniform_location, ir->name);
          f->decorates.opcode(5, SpvOpMemberDecorate, f->uniform_struct_id, ir->ir_uniform_location, SpvDecorationOffset, f->uniform_offset);
 
-         if (ir->type->is_matrix()) {
+         if (glsl_type_is_matrix(ir->type)) {
             f->decorates.opcode(4, SpvOpMemberDecorate, f->uniform_struct_id, ir->ir_uniform_location, SpvDecorationColMajor);
             f->decorates.opcode(5, SpvOpMemberDecorate, f->uniform_struct_id, ir->ir_uniform_location, SpvDecorationMatrixStride, 16);
          }
 
-         f->uniform_offset += ir->type->std430_size(false);
+         f->uniform_offset += glsl_get_std430_size(ir->type, false);
       }
    } else {
       unsigned int pointer_id = visit_type_pointer(ir->type, ir->data.mode, type_id);
@@ -1039,36 +1040,36 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
       unsigned int value_id = f->id++;
       unsigned short opcode;
-      if (ir->operands[0]->type->is_scalar()) {
-         if (ir->operands[1]->type->is_scalar()) {
+      if (glsl_type_is_scalar(ir->operands[0]->type)) {
+         if (glsl_type_is_scalar(ir->operands[1]->type)) {
             opcode = float_type ? SpvOpFMul : SpvOpIMul;
-         } else if (ir->operands[1]->type->is_vector()) {
+         } else if (glsl_type_is_vector(ir->operands[1]->type)) {
             opcode = SpvOpVectorTimesScalar;
             operands[0] = ir->operands[1]->ir_value;
             operands[1] = ir->operands[0]->ir_value;
-         } else if (ir->operands[1]->type->is_matrix()) {
+         } else if (glsl_type_is_matrix(ir->operands[1]->type)) {
             opcode = SpvOpMatrixTimesScalar;
             operands[0] = ir->operands[1]->ir_value;
             operands[1] = ir->operands[0]->ir_value;
          } else {
             unreachable("unknown multiply operation");
          }
-      } else if (ir->operands[0]->type->is_vector()) {
-         if (ir->operands[1]->type->is_scalar()) {
+      } else if (glsl_type_is_vector(ir->operands[0]->type)) {
+         if (glsl_type_is_scalar(ir->operands[1]->type)) {
             opcode = SpvOpVectorTimesScalar;
-         } else if (ir->operands[1]->type->is_vector()) {
+         } else if (glsl_type_is_vector(ir->operands[1]->type)) {
             opcode = float_type ? SpvOpFMul : SpvOpIMul;
-         } else if (ir->operands[1]->type->is_matrix()) {
+         } else if (glsl_type_is_matrix(ir->operands[1]->type)) {
             opcode = SpvOpVectorTimesMatrix;
          } else {
             unreachable("unknown multiply operation");
          }
-      } else if (ir->operands[0]->type->is_matrix()) {
-         if (ir->operands[1]->type->is_scalar()) {
+      } else if (glsl_type_is_matrix(ir->operands[0]->type)) {
+         if (glsl_type_is_scalar(ir->operands[1]->type)) {
             opcode = SpvOpMatrixTimesScalar;
-         } else if (ir->operands[1]->type->is_vector()) {
+         } else if (glsl_type_is_vector(ir->operands[1]->type)) {
             opcode = SpvOpMatrixTimesVector;
-         } else if (ir->operands[1]->type->is_matrix()) {
+         } else if (glsl_type_is_matrix(ir->operands[1]->type)) {
             opcode = SpvOpMatrixTimesMatrix;
          } else {
             unreachable("unknown multiply operation");
@@ -1179,11 +1180,11 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          for (unsigned int i = 0; i < 2; ++i) {
             if (ir->operands[i]->type == ir->type) {
                operands[i] = ir->operands[i]->ir_value;
-            } else if (ir->operands[i]->type->components() == 1) {
+            } else if (glsl_get_components(ir->operands[i]->type) == 1) {
                operands[i] = f->id++;
 
                unsigned int id = ir->operands[i]->ir_value;
-               f->codes.opcode(3 + ir->type->components(), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
+               f->codes.opcode(3 + glsl_get_components(ir->type), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
             } else {
                unreachable("operands must match result or be scalar");
             }
@@ -1277,11 +1278,11 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          for (unsigned int i = 0; i < 3; ++i) {
             if (ir->operands[i]->type == ir->type) {
                operands[i] = ir->operands[i]->ir_value;
-            } else if (ir->operands[i]->type->components() == 1) {
+            } else if (glsl_get_components(ir->operands[i]->type) == 1) {
                operands[i] = f->id++;
 
                unsigned int id = ir->operands[i]->ir_value;
-               f->codes.opcode(3 + ir->type->components(), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
+               f->codes.opcode(3 + glsl_get_components(ir->type), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
             } else {
                unreachable("operands must match result or be scalar");
             }
@@ -1344,13 +1345,13 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
          visit_value(ir->projector);
 
          unsigned int components[4];
-         unsigned int coordinate_component = ir->coordinate->type->components();
+         unsigned int coordinate_component = glsl_get_components(ir->coordinate->type);
          if (coordinate_component == 1) {
             components[0] = coordinate_id;
          }
          else {
             for (unsigned int i = 0; i < coordinate_component; ++i) {
-               unsigned int type_id = visit_type(glsl_type::float_type);
+               unsigned int type_id = visit_type(&glsl_type_builtin_float);
                unsigned int id = f->id++;
 
                f->codes.opcode(5, SpvOpCompositeExtract, type_id, id, coordinate_id, i);
@@ -1362,13 +1363,13 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
          const glsl_type* combined_type;
          switch (coordinate_component) {
          case 1:
-            combined_type = glsl_type::vec2_type;
+            combined_type = &glsl_type_builtin_vec2;
             break;
          case 2:
-            combined_type = glsl_type::vec3_type;
+            combined_type = &glsl_type_builtin_vec3;
             break;
          case 3:
-            combined_type = glsl_type::vec4_type;
+            combined_type = &glsl_type_builtin_vec4;
             break;
          default:
             unreachable("unknown component");
@@ -1563,7 +1564,7 @@ ir_print_spirv_visitor::visit(ir_swizzle *ir)
       return;
    }
 
-   if (ir->val->type->is_vector() == false) {
+   if (glsl_type_is_vector(ir->val->type) == false) {
       f->codes.opcode(3 + ir->mask.num_components, SpvOpCompositeConstruct, type_id, value_id, source_id, source_id, source_id, source_id);
 
       ir->ir_value = value_id;
@@ -1582,7 +1583,7 @@ ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
 
    switch (var->data.mode) {
    case ir_var_uniform:
-      if (var->type->is_image() || var->type->is_sampler()) {
+      if (glsl_type_is_image(var->type) || glsl_type_is_sampler(var->type)) {
          if (var->ir_pointer == 0) {
             unsigned int name_id = unique_name(var);
             unsigned int binding_id = var->ir_binding_point;
@@ -1623,32 +1624,32 @@ ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
             const glsl_type* type;
             unsigned int built_in;
             switch (h(var->name)) {
-            case h("gl_Position"):       type = glsl_type::vec4_type;  built_in = SpvBuiltInPosition;       break;
-            case h("gl_PointSize"):      type = glsl_type::float_type; built_in = SpvBuiltInPointSize;      break;
-            case h("gl_ClipDistance"):   type = glsl_type::get_array_instance(glsl_type::float_type, 8);    built_in = SpvBuiltInClipDistance;                break;
-            case h("gl_CullDistance"):   type = glsl_type::get_array_instance(glsl_type::float_type, 8);    built_in = SpvBuiltInCullDistance;                break;
-            case h("gl_VertexID"):       type = glsl_type::int_type;   built_in = SpvBuiltInVertexId;       break;
+            case h("gl_Position"):       type = &glsl_type_builtin_vec4;   built_in = SpvBuiltInPosition;       break;
+            case h("gl_PointSize"):      type = &glsl_type_builtin_float;  built_in = SpvBuiltInPointSize;      break;
+            case h("gl_ClipDistance"):   type = glsl_simple_type(GLSL_TYPE_FLOAT, 8, 1);  built_in = SpvBuiltInClipDistance;                break;
+            case h("gl_CullDistance"):   type = glsl_simple_type(GLSL_TYPE_FLOAT, 8, 1);  built_in = SpvBuiltInCullDistance;                break;
+            case h("gl_VertexID"):       type = &glsl_type_builtin_int;    built_in = SpvBuiltInVertexId;       break;
             case h("gl_InstanceID"):
-            case h("gl_InstanceIDARB"):  type = glsl_type::int_type;   built_in = SpvBuiltInInstanceId;     break;
-            case h("gl_PrimitiveID"):    type = glsl_type::int_type;   built_in = SpvBuiltInPrimitiveId;    f->capability_geometry = true;                    break;
-            case h("gl_Layer"):          type = glsl_type::int_type;   built_in = SpvBuiltInLayer;          f->capability_shader_viewport_index_layer = true; break;
-            case h("gl_ViewportIndex"):  type = glsl_type::int_type;   built_in = SpvBuiltInViewportIndex;  f->capability_shader_viewport_index_layer = true; break;
-            case h("gl_FragCoord"):      type = glsl_type::vec4_type;  built_in = SpvBuiltInFragCoord;      break;
-            case h("gl_PointCoord"):     type = glsl_type::vec2_type;  built_in = SpvBuiltInPointCoord;     break;
-            case h("gl_FrontFacing"):    type = glsl_type::bool_type;  built_in = SpvBuiltInFrontFacing;    break;
-            case h("gl_SampleID"):       type = glsl_type::int_type;   built_in = SpvBuiltInSampleId;       f->capability_sample_rate_shading = true;         break;
-            case h("gl_SamplePosition"): type = glsl_type::vec2_type;  built_in = SpvBuiltInSamplePosition; f->capability_sample_rate_shading = true;         break;
-            case h("gl_FragColor"):      type = glsl_type::vec4_type;  built_in = SpvBuiltInFragColor;      break;
-            case h("gl_FragDepth"):      type = glsl_type::float_type; built_in = SpvBuiltInFragDepth;      break;
-            case h("gl_VertexIndex"):    type = glsl_type::int_type;   built_in = SpvBuiltInVertexIndex;    break;
-            case h("gl_InstanceIndex"):  type = glsl_type::int_type;   built_in = SpvBuiltInInstanceIndex;  break;
+            case h("gl_InstanceIDARB"):  type = &glsl_type_builtin_int;    built_in = SpvBuiltInInstanceId;     break;
+            case h("gl_PrimitiveID"):    type = &glsl_type_builtin_int;    built_in = SpvBuiltInPrimitiveId;    f->capability_geometry = true;                    break;
+            case h("gl_Layer"):          type = &glsl_type_builtin_int;    built_in = SpvBuiltInLayer;          f->capability_shader_viewport_index_layer = true; break;
+            case h("gl_ViewportIndex"):  type = &glsl_type_builtin_int;    built_in = SpvBuiltInViewportIndex;  f->capability_shader_viewport_index_layer = true; break;
+            case h("gl_FragCoord"):      type = &glsl_type_builtin_vec4;   built_in = SpvBuiltInFragCoord;      break;
+            case h("gl_PointCoord"):     type = &glsl_type_builtin_vec2;   built_in = SpvBuiltInPointCoord;     break;
+            case h("gl_FrontFacing"):    type = &glsl_type_builtin_bool;   built_in = SpvBuiltInFrontFacing;    break;
+            case h("gl_SampleID"):       type = &glsl_type_builtin_int;    built_in = SpvBuiltInSampleId;       f->capability_sample_rate_shading = true;         break;
+            case h("gl_SamplePosition"): type = &glsl_type_builtin_vec2;   built_in = SpvBuiltInSamplePosition; f->capability_sample_rate_shading = true;         break;
+            case h("gl_FragColor"):      type = &glsl_type_builtin_vec4;   built_in = SpvBuiltInFragColor;      break;
+            case h("gl_FragDepth"):      type = &glsl_type_builtin_float;  built_in = SpvBuiltInFragDepth;      break;
+            case h("gl_VertexIndex"):    type = &glsl_type_builtin_int;    built_in = SpvBuiltInVertexIndex;    break;
+            case h("gl_InstanceIndex"):  type = &glsl_type_builtin_int;    built_in = SpvBuiltInInstanceIndex;  break;
             case h("gl_BaseVertexARB"):
-            case h("gl_BaseVertex"):     type = glsl_type::int_type;   built_in = SpvBuiltInBaseVertex;     f->capability_draw_parameters = true;             break;
+            case h("gl_BaseVertex"):     type = &glsl_type_builtin_int;    built_in = SpvBuiltInBaseVertex;     f->capability_draw_parameters = true;             break;
             case h("gl_BaseInstanceARB"):
-            case h("gl_BaseInstance"):   type = glsl_type::int_type;   built_in = SpvBuiltInBaseInstance;   f->capability_draw_parameters = true;             break;
+            case h("gl_BaseInstance"):   type = &glsl_type_builtin_int;    built_in = SpvBuiltInBaseInstance;   f->capability_draw_parameters = true;             break;
             case h("gl_DrawIDARB"):
-            case h("gl_DrawID"):         type = glsl_type::int_type;   built_in = SpvBuiltInDrawIndex;      f->capability_draw_parameters = true;             break;
-            default:                     type = glsl_type::int_type;   built_in = SpvBuiltInMax;            break;
+            case h("gl_DrawID"):         type = &glsl_type_builtin_int;    built_in = SpvBuiltInDrawIndex;      f->capability_draw_parameters = true;             break;
+            default:                     type = &glsl_type_builtin_int;    built_in = SpvBuiltInMax;            break;
             }
 
             switch (built_in) {
@@ -1673,7 +1674,7 @@ ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
                unsigned int name_id = f->gl_per_vertex_name_id;
                unsigned int struct_id = f->gl_per_vertex_struct_id;
                unsigned int per_vertex_index = f->per_vertices.count();
-               unsigned int int_type_id = visit_type(glsl_type::int_type);
+               unsigned int int_type_id = visit_type(&glsl_type_builtin_int);
                unsigned int constant_id = f->id++;
                unsigned int pointer_id = f->id++;
                unsigned int type_id = visit_type(type);
@@ -1749,7 +1750,7 @@ ir_print_spirv_visitor::visit(ir_dereference_record *ir)
    ir->record->accept(this);
    visit_value(ir->record);
 
-   glsl_struct_field& field = ir->record->type->fields.structure[ir->field_idx];
+   const glsl_struct_field& field = ir->record->type->fields.structure[ir->field_idx];
    unsigned int type_id = visit_type(field.type);
    unsigned int pointer_id = visit_type_pointer(field.type, ir_var_const_in, type_id);
    unsigned int value_id = f->id++;
@@ -1768,21 +1769,21 @@ ir_print_spirv_visitor::visit(ir_assignment *ir)
    visit_value(ir->rhs);
 
    unsigned int value_id;
-   bool full_write = (util_bitcount(ir->write_mask) == ir->lhs->type->components()) || (ir->write_mask == 0 && ir->lhs->ir_value == 0);
-   if (full_write && (ir->lhs->type->components() == ir->rhs->type->components())) {
+   bool full_write = (util_bitcount(ir->write_mask) == glsl_get_components(ir->lhs->type)) || (ir->write_mask == 0 && ir->lhs->ir_value == 0);
+   if (full_write && (glsl_get_components(ir->lhs->type) == glsl_get_components(ir->rhs->type))) {
       value_id = ir->rhs->ir_value;
-   } else if (ir->rhs->type->components() == 1) {
+   } else if (glsl_get_components(ir->rhs->type) == 1) {
       if (full_write) {
          unsigned int type_id = visit_type(ir->lhs->type);
          unsigned int id = ir->rhs->ir_value;
          value_id = f->id++;
 
-         f->codes.opcode(3 + ir->lhs->type->components(), SpvOpCompositeConstruct, type_id, value_id, id, id, id, id);
+         f->codes.opcode(3 + glsl_get_components(ir->lhs->type), SpvOpCompositeConstruct, type_id, value_id, id, id, id, id);
       } else {
          ir_variable *var = ir->lhs->variable_referenced();
-         unsigned int type_id = visit_type(ir->lhs->type->get_base_type());
-         unsigned int type_pointer_id = visit_type_pointer(ir->lhs->type->get_base_type(), var->data.mode, type_id);
-         for (unsigned int i = 0; i < ir->lhs->type->components(); ++i) {
+         unsigned int type_id = visit_type(glsl_get_base_glsl_type(ir->lhs->type));
+         unsigned int type_pointer_id = visit_type_pointer(glsl_get_base_glsl_type(ir->lhs->type), var->data.mode, type_id);
+         for (unsigned int i = 0; i < glsl_get_components(ir->lhs->type); ++i) {
             if (ir->write_mask & (1 << i)) {
                unsigned int access_id = f->id++;
                unsigned int index_id = visit_constant_value(i);
@@ -1800,15 +1801,15 @@ ir_print_spirv_visitor::visit(ir_assignment *ir)
       unsigned int ids[4] = {};
       value_id = f->id++;
 
-      for (unsigned int i = 0, j = 0; i < ir->lhs->type->components(); ++i) {
+      for (unsigned int i = 0, j = 0; i < glsl_get_components(ir->lhs->type); ++i) {
          if (ir->write_mask & (1 << i)) {
-            ids[i] = ir->lhs->type->components() + j++;
+            ids[i] = glsl_get_components(ir->lhs->type) + j++;
          } else {
             ids[i] = i;
          }
       }
 
-      f->codes.opcode(5 + ir->lhs->type->components(), SpvOpVectorShuffle, type_id, value_id, ir->lhs->ir_value, ir->rhs->ir_value, ids[0], ids[1], ids[2], ids[3]);
+      f->codes.opcode(5 + glsl_get_components(ir->lhs->type), SpvOpVectorShuffle, type_id, value_id, ir->lhs->ir_value, ir->rhs->ir_value, ids[0], ids[1], ids[2], ids[3]);
    }
 
    if (ir->lhs->ir_pointer != 0) {
@@ -1821,14 +1822,14 @@ ir_print_spirv_visitor::visit(ir_assignment *ir)
 void
 ir_print_spirv_visitor::visit(ir_constant *ir)
 {
-   if (ir->type->is_array()) {
+   if (glsl_type_is_array(ir->type)) {
       for (unsigned i = 0; i < ir->type->length; i++)
          ir->get_array_element(i)->accept(this);
-   } else if (ir->type->is_struct()) {
+   } else if (glsl_type_is_struct(ir->type)) {
       for (unsigned i = 0; i < ir->type->length; i++)
          ir->get_record_field(i)->accept(this);
    } else {
-      if (ir->type->components() == 1) {
+      if (glsl_get_components(ir->type) == 1) {
          switch (ir->type->base_type) {
          case GLSL_TYPE_UINT:
             if (ir->value.u[0] <= 15)
@@ -1887,7 +1888,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
          }
       } else {
          unsigned int ids[4] = {};
-         for (unsigned int i = 0; i < ir->type->components(); i++) {
+         for (unsigned int i = 0; i < glsl_get_components(ir->type); i++) {
             switch (ir->type->base_type) {
             case GLSL_TYPE_UINT:
                ids[i] = visit_constant_value(ir->value.u[i]);
@@ -1905,7 +1906,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
          unsigned int value_id = f->id++;
          unsigned int type_id = visit_type(ir->type);
 
-         f->types.opcode(3 + ir->type->components(), SpvOpConstantComposite, type_id, value_id, ids[0], ids[1], ids[2], ids[3]);
+         f->types.opcode(3 + glsl_get_components(ir->type), SpvOpConstantComposite, type_id, value_id, ids[0], ids[1], ids[2], ids[3]);
 
          ir->ir_value = value_id;
       }

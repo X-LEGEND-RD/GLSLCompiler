@@ -1,6 +1,9 @@
 #!/bin/sh
 
 mkdir compiler &>/dev/null
+python3 ../mesa/src/compiler/builtin_types_c.py compiler/builtin_types.c
+python3 ../mesa/src/compiler/builtin_types_h.py compiler/builtin_types.h
+
 mkdir compiler/glsl &>/dev/null
 flex -o compiler/glsl/glsl_lexer.cpp ../mesa/src/compiler/glsl/glsl_lexer.ll
 byacc -o compiler/glsl/glsl_parser.cpp -p _mesa_glsl_ --defines=compiler/glsl/glsl_parser.h ../mesa/src/compiler/glsl/glsl_parser.yy

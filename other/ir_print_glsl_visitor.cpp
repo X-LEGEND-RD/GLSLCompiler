@@ -24,6 +24,7 @@
 #include "ir_print_glsl_visitor.h"
 #include "compiler/glsl_types.h"
 #include "glsl_parser_extras.h"
+#include "linker_util.h"
 #include "main/macros.h"
 #include "util/hash_table.h"
 #include "ir_expression_operation_glsl_strings.h"
@@ -34,7 +35,7 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
       return false;
    if (op == ir_binop_mod || (op >= ir_binop_dot && op <= ir_binop_pow))
       return true;
-   if (type->is_vector() && (op >= ir_binop_less && op <= ir_binop_nequal))
+   if (glsl_type_is_vector(type) && (op >= ir_binop_less && op <= ir_binop_nequal))
       return true;
    return false;
 }
@@ -149,14 +150,14 @@ ir_print_glsl_visitor::unique_name(ir_variable *var)
 static void
 print_type(FILE *f, int(*fprintf)(FILE *, const char *, ...), const glsl_type *t, unsigned version)
 {
-   if (t->is_array()) {
+   if (glsl_type_is_array(t)) {
 
-   } else if (t->is_struct() && !is_gl_identifier(t->name)) {
-      fprintf(f, "%s_%p", t->name, (void *) t);
+   } else if (glsl_type_is_struct(t) && !is_gl_identifier(glsl_get_type_name(t))) {
+      fprintf(f, "%s_%p", glsl_get_type_name(t), (void *) t);
    } else if ((t->base_type == GLSL_TYPE_UINT) && version <= 120) {
       fprintf(f, "%s", "int");
    } else {
-      fprintf(f, "%s", t->name);
+      fprintf(f, "%s", glsl_get_type_name(t));
    }
 }
 
@@ -183,8 +184,8 @@ ir_print_glsl_visitor::visit(ir_variable *ir)
    }
    int default_precision = GLSL_PRECISION_NONE;
    if (state->es_shader)
-      default_precision = (ir->type->contains_integer() == false && state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
-   if (ir->type->is_sampler() || ir->data.precision != default_precision) {
+      default_precision = (glsl_type_is_integer(ir->type) == false && state->stage == MESA_SHADER_VERTEX) ? GLSL_PRECISION_HIGH : GLSL_PRECISION_MEDIUM;
+   if (glsl_type_is_sampler(ir->type) || ir->data.precision != default_precision) {
       const char *const precision[] = { "", "highp ", "mediump ", "lowp " };
       fprintf(f, "%s", precision[ir->data.precision]);
    }
@@ -270,7 +271,7 @@ ir_print_glsl_visitor::visit(ir_expression *ir)
          print_type(f, fprintf, ir->type, state->language_version);
          fprintf(f, "(");
       }
-      if (ir->type->is_vector() && (ir->operation >= ir_binop_less && ir->operation <= ir_binop_nequal))
+      if (glsl_type_is_vector(ir->type) && (ir->operation >= ir_binop_less && ir->operation <= ir_binop_nequal))
          fprintf(f, "%s(", ir_expression_operation_vector_strings[ir->operation-ir_binop_less]);
       else
          fprintf(f, "%s(", ir_expression_operation_glsl_strings[ir->operation]);
@@ -422,7 +423,7 @@ ir_print_glsl_visitor::visit(ir_swizzle *ir)
       ir->mask.w,
    };
 
-   if (ir->val->type->is_float() && ir->val->type->components() == 1) {
+   if (glsl_type_is_float(ir->val->type) && glsl_get_components(ir->val->type) == 1) {
       fprintf(f, "vec2(");
       ir->val->accept(this);
       fprintf(f, ", 0.0)");
@@ -466,7 +467,7 @@ ir_print_glsl_visitor::visit(ir_assignment *ir)
 {
    ir->lhs->accept(this);
 
-   if (ir->write_mask != ((1 << ir->lhs->type->components()) - 1)) {
+   if (ir->write_mask != ((1 << glsl_get_components(ir->lhs->type)) - 1)) {
       char mask[5];
       unsigned j = 0;
 
@@ -487,22 +488,22 @@ ir_print_glsl_visitor::visit(ir_assignment *ir)
 void
 ir_print_glsl_visitor::visit(ir_constant *ir)
 {
-   if (ir->type->components() > 1 || ir->type->is_float() == false) {
+   if (glsl_get_components(ir->type) > 1 || glsl_type_is_float(ir->type) == false) {
       print_type(f, fprintf, ir->type, state->language_version);
       fprintf(f, "(");
    }
 
-   if (ir->type->is_array()) {
+   if (glsl_type_is_array(ir->type)) {
       for (unsigned i = 0; i < ir->type->length; i++)
          ir->get_array_element(i)->accept(this);
-   } else if (ir->type->is_struct()) {
+   } else if (glsl_type_is_struct(ir->type)) {
       for (unsigned i = 0; i < ir->type->length; i++) {
          fprintf(f, "(%s ", ir->type->fields.structure[i].name);
          ir->get_record_field(i)->accept(this);
          fprintf(f, ")");
       }
    } else {
-      for (unsigned i = 0; i < ir->type->components(); i++) {
+      for (unsigned i = 0; i < glsl_get_components(ir->type); i++) {
          if (i != 0)
             fprintf(f, ", ");
          switch (ir->type->base_type) {
@@ -541,7 +542,7 @@ ir_print_glsl_visitor::visit(ir_constant *ir)
       }
    }
 
-   if (ir->type->components() > 1 || ir->type->is_float() == false) {
+   if (glsl_get_components(ir->type) > 1 || glsl_type_is_float(ir->type) == false) {
       fprintf(f, ")");
    }
 }
