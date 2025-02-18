@@ -24,5 +24,6 @@ mkdir util &>/dev/null
 python3 ../mesa/src/util/format_srgb.py >util/format_srgb.c
 
 mkdir util/format &>/dev/null
-python3 ../mesa/src/util/format/u_format_table.py ../mesa/src/util/format/u_format.csv >util/format/u_format_table.c
-python3 ../mesa/src/util/format/u_format_table.py ../mesa/src/util/format/u_format.csv --header >util/format/u_format_pack.h
+python3 ../mesa/src/util/format/u_format_table.py ../mesa/src/util/format/u_format.yaml >util/format/u_format_table.c
+python3 ../mesa/src/util/format/u_format_table.py ../mesa/src/util/format/u_format.yaml --enums >util/format/u_format_gen.h
+python3 ../mesa/src/util/format/u_format_table.py ../mesa/src/util/format/u_format.yaml --header >util/format/u_format_pack.h

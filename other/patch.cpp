@@ -44,7 +44,6 @@ const struct option compiler_opts[] = {
    { "dump-ast", no_argument, &options.dump_ast, 1 },
    { "dump-hir", no_argument, &options.dump_hir, 1 },
    { "dump-lir", no_argument, &options.dump_lir, 1 },
-   { "dump-builder", no_argument, &options.dump_builder, 1 },
    { "link",     no_argument, &options.do_link,  1 },
    { "just-log", no_argument, &options.just_log, 1 },
    { "lower-precision", no_argument, &options.lower_precision, 1 },
@@ -122,25 +121,17 @@ _mesa_error_no_memory(const char *caller)
    fprintf(stderr, "Mesa error: out of memory in %s", caller);
 }
 
-void
-compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const struct standalone_options_patch *options)
+struct nir_shader *
+glsl_to_nir_patch(struct gl_shader *shader, struct gl_context *ctx)
 {
    struct _mesa_glsl_parse_state *state =
       new(shader) _mesa_glsl_parse_state(ctx, shader->Stage, shader);
 
-   _mesa_glsl_compile_shader(ctx, shader, options->dump_ast,
-                             options->dump_hir, true);
-
-   /* Print out the resulting IR */
-   if (shader->CompileStatus == COMPILE_SUCCESS && options->dump_lir) {
-      _mesa_print_ir(stdout, shader->ir, state);
-   }
-
-   if (shader->CompileStatus == COMPILE_SUCCESS && options->dump_glsl) {
+   if (shader->CompileStatus == COMPILE_SUCCESS && options.dump_glsl) {
       _mesa_print_glsl(stdout, fprintf, shader->ir, state);
    }
 
-   if (shader->CompileStatus == COMPILE_SUCCESS && (options->dump_spirv || options->dump_spirv_validation || options->dump_spirv_glsl)) {
+   if (shader->CompileStatus == COMPILE_SUCCESS && (options.dump_spirv || options.dump_spirv_validation || options.dump_spirv_glsl)) {
       spirv_buffer buffer;
       _mesa_print_spirv(&buffer, shader->ir, state, 0);
 
@@ -150,21 +141,21 @@ compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const str
          fclose(f);
       }
 
-      if (options->dump_spirv) {
+      if (options.dump_spirv) {
 #ifdef _WIN32
          system("spirv-dis.exe --no-color output.spv");
 #else
          system("spirv-dis --no-color output.spv");
 #endif
       }
-      if (options->dump_spirv_validation) {
+      if (options.dump_spirv_validation) {
 #ifdef _WIN32
          system("spirv-val.exe output.spv");
 #else
          system("spirv-val output.spv");
 #endif
       }
-      if (options->dump_spirv_glsl) {
+      if (options.dump_spirv_glsl) {
 #ifdef _WIN32
          system("spirv-cross.exe output.spv");
 #else
@@ -174,5 +165,5 @@ compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const str
    }
 
    ralloc_free(state);
-   return;
+   return NULL;
 }

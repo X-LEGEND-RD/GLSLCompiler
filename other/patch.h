@@ -26,10 +26,12 @@
 #ifndef PATCH_H
 #define PATCH_H
 
+#define HAVE_OPENGL_ES_2 1
 #define HAVE_PTHREAD
 #define HAVE_STRUCT_TIMESPEC
 
 #include <getopt.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 #undef signbit
@@ -57,7 +59,6 @@ struct standalone_options_patch {
    int dump_ast;
    int dump_hir;
    int dump_lir;
-   int dump_builder;
    int do_link;
    int just_log;
    int lower_precision;
@@ -69,15 +70,18 @@ struct standalone_options_patch {
 
 #define standalone_options _concat(standalone_options, __LINE__)
 #define standalone_options31 standalone_options_old
-#define standalone_options45 standalone_options_patch
+#define standalone_options44 standalone_options_patch
 #include "standalone.h"
 #undef standalone_options
 #define standalone_options standalone_options_patch
 
-void
-compile_shader_patch(struct gl_context *ctx, struct gl_shader *shader, const struct standalone_options_patch *options);
+struct nir_shader *
+glsl_to_nir_patch(struct gl_shader *shader, struct gl_context *ctx);
 
-#define compile_shader _concat(compile_shader, __LINE__)
-#define compile_shader456(ctx, shader) compile_shader_patch(ctx, shader, options)
+#define glsl_to_nir _concat(glsl_to_nir, __LINE__)
+#define glsl_to_nir2449(shader, ...) glsl_to_nir_patch(shader, ctx)
+
+#define gl_nir_link_glsl _concat(gl_nir_link_glsl, __LINE__)
+#define gl_nir_link_glsl431(...) (void)0
 
 #endif /* PATCH_H */

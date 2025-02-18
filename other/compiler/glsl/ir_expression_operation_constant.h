@@ -389,6 +389,126 @@
       }
       break;
 
+   case ir_unop_u2f16:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_UINT:
+            data.f[c] = op[0]->value.u[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_f162u:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            data.u[c] = op[0]->value.f[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_i2f16:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_INT:
+            data.f[c] = op[0]->value.i[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_f162i:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            data.i[c] = op[0]->value.f[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_d2f16:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_DOUBLE:
+            data.f[c] = op[0]->value.d[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_f162d:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            data.d[c] = op[0]->value.f[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_u642f16:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_UINT64:
+            data.f[c] = op[0]->value.u64[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_f162u64:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            data.u64[c] = op[0]->value.f[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_i642f16:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_INT64:
+            data.f[c] = op[0]->value.i64[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
+   case ir_unop_f162i64:
+      for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
+         switch (op[0]->type->base_type) {
+         case GLSL_TYPE_FLOAT:
+            data.i64[c] = op[0]->value.f[c];
+            break;
+         default:
+            unreachable("invalid type");
+         }
+      }
+      break;
+
    case ir_unop_i2i:
       for (unsigned c = 0; c < glsl_get_components(op[0]->type); c++) {
          switch (op[0]->type->base_type) {
