@@ -31,14 +31,13 @@
 #define HAVE_STRUCT_TIMESPEC
 
 #include <getopt.h>
-#include <stdint.h>
 
 #ifdef __cplusplus
 #undef signbit
-#include <glsl/list.h>
-class exec_node_patch : public exec_node {
+#include "glsl/ir_list.h"
+class ir_exec_node_patch : public ir_exec_node {
 public:
-   struct exec_node *parent;
+   struct ir_exec_node *parent;
    unsigned int ir_value;
    unsigned int ir_pointer;
    unsigned int ir_label;
@@ -46,9 +45,9 @@ public:
    unsigned int ir_uniform_location;
    unsigned int ir_binding_point;
 };
-#define exec_node exec_node_patch
+#define ir_exec_node ir_exec_node_patch
 #include "ir.h"
-#undef exec_node
+#undef ir_exec_node
 #endif
 
 #define __concat(x, y) x ## y
@@ -79,9 +78,9 @@ struct nir_shader *
 glsl_to_nir_patch(struct gl_shader *shader, struct gl_context *ctx);
 
 #define glsl_to_nir _concat(glsl_to_nir, __LINE__)
-#define glsl_to_nir2449(shader, ...) glsl_to_nir_patch(shader, ctx)
+#define glsl_to_nir2537(shader, ...) glsl_to_nir_patch(shader, ctx)
 
 #define gl_nir_link_glsl _concat(gl_nir_link_glsl, __LINE__)
-#define gl_nir_link_glsl431(...) (void)0
+#define gl_nir_link_glsl432(...) (void)0
 
 #endif /* PATCH_H */

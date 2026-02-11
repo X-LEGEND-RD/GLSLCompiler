@@ -78,7 +78,7 @@ public:
    binary_buffer uniforms;
    binary_buffer per_vertices;
 
-   gl_shader_stage shader_stage;
+   mesa_shader_stage shader_stage;
 
    unsigned int id;
    unsigned int binding_id;
@@ -204,7 +204,7 @@ private:
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state* state, unsigned binding);
+_mesa_print_spirv(spirv_buffer *f, ir_exec_list *instructions, struct _mesa_glsl_parse_state* state, unsigned binding);
 }
 
 #endif /* IR_PRINT_SPIRV_VISITOR_H */

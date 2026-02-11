@@ -28,7 +28,6 @@
 		F5125091301A53BC00C47FFC /* ir_expression_flattening.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124FA1301A53BC00C47FFC /* ir_expression_flattening.cpp */; };
 		F5125092301A53BC00C47FFC /* linker_util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124FC7301A53BC00C47FFC /* linker_util.cpp */; };
 		F5125098301A53BC00C47FFC /* set.c in Sources */ = {isa = PBXBuildFile; fileRef = F5125058301A53BC00C47FFC /* set.c */; };
-		F512509A301A53BC00C47FFC /* opt_flip_matrices.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124FFA301A53BC00C47FFC /* opt_flip_matrices.cpp */; };
 		F512509E301A53BC00C47FFC /* string_buffer.c in Sources */ = {isa = PBXBuildFile; fileRef = F512505D301A53BC00C47FFC /* string_buffer.c */; };
 		F512509F301A53BC00C47FFC /* lower_mat_op_to_vec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124FD8301A53BC00C47FFC /* lower_mat_op_to_vec.cpp */; };
 		F51250A2301A53BC00C47FFC /* softfloat.c in Sources */ = {isa = PBXBuildFile; fileRef = F512505B301A53BC00C47FFC /* softfloat.c */; };
@@ -70,12 +69,9 @@
 		F51250EC301A56E000C47FFC /* standalone_scaffolding.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F51250EB301A56E000C47FFC /* standalone_scaffolding.cpp */; };
 		F51250FD301BAA4300C47FFC /* blob.c in Sources */ = {isa = PBXBuildFile; fileRef = F51250FC301BAA4300C47FFC /* blob.c */; };
 		F5125101301BAC4000C47FFC /* patch.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5125100301BAC4000C47FFC /* patch.cpp */; };
-		F51A71FB301F3C7800DEB539 /* prog_parameter.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CD80301F145D0038724F /* prog_parameter.c */; };
-		F51A71FC301F3C9400DEB539 /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CB35301F090C0038724F /* log.c */; };
-		F51A71FD301F3CA100DEB539 /* u_process.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CD7E301F14340038724F /* u_process.c */; };
+		F51A71FE301F3F1F00DEB539 /* u_range_remap.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CDDC301F23FF0038724F /* u_range_remap.c */; };
 		F545CA47301E43490038724F /* lower_builtins.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F545CA46301E43490038724F /* lower_builtins.cpp */; };
 		F545CA4A301E43710038724F /* lower_precision.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F545CA48301E43710038724F /* lower_precision.cpp */; };
-		F545CA7F301E4D040038724F /* sha1.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CA7D301E4D040038724F /* sha1.c */; };
 		F545CA85301E4D6C0038724F /* u_cpu_detect.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CA84301E4D6C0038724F /* u_cpu_detect.c */; };
 		F545CA88301E4D9D0038724F /* u_debug.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CA87301E4D9D0038724F /* u_debug.c */; };
 		F545CA8B301E4DD70038724F /* os_misc.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CA8A301E4DD70038724F /* os_misc.c */; };
@@ -111,6 +107,9 @@
 		F545CB26301F08C10038724F /* blake3_portable.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CB17301F08C10038724F /* blake3_portable.c */; };
 		F545CB28301F08C10038724F /* blake3_dispatch.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CB14301F08C10038724F /* blake3_dispatch.c */; };
 		F545CB2E301F08C10038724F /* blake3_neon.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CB16301F08C10038724F /* blake3_neon.c */; };
+		F545CB36301F090C0038724F /* log.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CB35301F090C0038724F /* log.c */; };
+		F545CD7F301F14340038724F /* u_process.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CD7E301F14340038724F /* u_process.c */; };
+		F545CD81301F145D0038724F /* prog_parameter.c in Sources */ = {isa = PBXBuildFile; fileRef = F545CD80301F145D0038724F /* prog_parameter.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -190,7 +189,6 @@
 		F5124FB9301A53BC00C47FFC /* ir_visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_visitor.h; sourceTree = "<group>"; };
 		F5124FC6301A53BC00C47FFC /* linker_util.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = linker_util.h; sourceTree = "<group>"; };
 		F5124FC7301A53BC00C47FFC /* linker_util.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = linker_util.cpp; sourceTree = "<group>"; };
-		F5124FC8301A53BC00C47FFC /* list.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
 		F5124FD5301A53BC00C47FFC /* lower_instructions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = lower_instructions.cpp; sourceTree = "<group>"; };
 		F5124FD7301A53BC00C47FFC /* lower_jumps.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = lower_jumps.cpp; sourceTree = "<group>"; };
 		F5124FD8301A53BC00C47FFC /* lower_mat_op_to_vec.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = lower_mat_op_to_vec.cpp; sourceTree = "<group>"; };
@@ -203,7 +201,6 @@
 		F5124FF4301A53BC00C47FFC /* opt_dead_builtin_variables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_dead_builtin_variables.cpp; sourceTree = "<group>"; };
 		F5124FF6301A53BC00C47FFC /* opt_dead_code.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_dead_code.cpp; sourceTree = "<group>"; };
 		F5124FF9301A53BC00C47FFC /* opt_flatten_nested_if_blocks.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_flatten_nested_if_blocks.cpp; sourceTree = "<group>"; };
-		F5124FFA301A53BC00C47FFC /* opt_flip_matrices.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_flip_matrices.cpp; sourceTree = "<group>"; };
 		F5124FFB301A53BC00C47FFC /* opt_function_inlining.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_function_inlining.cpp; sourceTree = "<group>"; };
 		F5124FFC301A53BC00C47FFC /* opt_if_simplification.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_if_simplification.cpp; sourceTree = "<group>"; };
 		F5124FFD301A53BC00C47FFC /* opt_minmax.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = opt_minmax.cpp; sourceTree = "<group>"; };
@@ -285,9 +282,6 @@
 		F5125100301BAC4000C47FFC /* patch.cpp */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.cpp.cpp; path = patch.cpp; sourceTree = "<group>"; tabWidth = 3; };
 		F545CA46301E43490038724F /* lower_builtins.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = lower_builtins.cpp; sourceTree = "<group>"; };
 		F545CA48301E43710038724F /* lower_precision.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = lower_precision.cpp; sourceTree = "<group>"; };
-		F545CA7B301E4D040038724F /* README */ = {isa = PBXFileReference; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
-		F545CA7C301E4D040038724F /* sha1.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sha1.h; sourceTree = "<group>"; };
-		F545CA7D301E4D040038724F /* sha1.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = sha1.c; sourceTree = "<group>"; };
 		F545CA80301E4D290038724F /* u_printf.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_printf.h; sourceTree = "<group>"; };
 		F545CA83301E4D6C0038724F /* u_cpu_detect.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_cpu_detect.h; sourceTree = "<group>"; };
 		F545CA84301E4D6C0038724F /* u_cpu_detect.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = u_cpu_detect.c; sourceTree = "<group>"; };
@@ -348,6 +342,9 @@
 		F545CAF0301F04D80038724F /* ir_expression_operation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_expression_operation.h; sourceTree = "<group>"; };
 		F545CAF1301F04D80038724F /* ir_expression_operation_constant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_expression_operation_constant.h; sourceTree = "<group>"; };
 		F545CAF2301F04D80038724F /* ir_expression_operation_strings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_expression_operation_strings.h; sourceTree = "<group>"; };
+		F545CAF4301F04D80038724F /* nir_intrinsics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nir_intrinsics.h; sourceTree = "<group>"; };
+		F545CAF5301F04D80038724F /* nir_intrinsics_indices.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nir_intrinsics_indices.h; sourceTree = "<group>"; };
+		F545CAF6301F04D80038724F /* nir_opcodes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = nir_opcodes.h; sourceTree = "<group>"; };
 		F545CAF8301F04D80038724F /* builtin_types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = builtin_types.h; sourceTree = "<group>"; };
 		F545CAF9301F04D80038724F /* builtin_types.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = builtin_types.c; sourceTree = "<group>"; };
 		F545CAFB301F04D80038724F /* u_format_pack.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_format_pack.h; sourceTree = "<group>"; };
@@ -367,6 +364,9 @@
 		F545CD7D301F14340038724F /* u_process.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_process.h; sourceTree = "<group>"; };
 		F545CD7E301F14340038724F /* u_process.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = u_process.c; sourceTree = "<group>"; };
 		F545CD80301F145D0038724F /* prog_parameter.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = prog_parameter.c; sourceTree = "<group>"; };
+		F545CD8B301F18450038724F /* fast_idiv_by_const.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = fast_idiv_by_const.h; sourceTree = "<group>"; };
+		F545CDDB301F23FF0038724F /* u_range_remap.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_range_remap.h; sourceTree = "<group>"; };
+		F545CDDC301F23FF0038724F /* u_range_remap.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = u_range_remap.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -508,7 +508,6 @@
 				F5124FB9301A53BC00C47FFC /* ir_visitor.h */,
 				F5124FC6301A53BC00C47FFC /* linker_util.h */,
 				F5124FC7301A53BC00C47FFC /* linker_util.cpp */,
-				F5124FC8301A53BC00C47FFC /* list.h */,
 				F545CA46301E43490038724F /* lower_builtins.cpp */,
 				F5124FD5301A53BC00C47FFC /* lower_instructions.cpp */,
 				F5124FD7301A53BC00C47FFC /* lower_jumps.cpp */,
@@ -523,7 +522,6 @@
 				F5124FF4301A53BC00C47FFC /* opt_dead_builtin_variables.cpp */,
 				F5124FF6301A53BC00C47FFC /* opt_dead_code.cpp */,
 				F5124FF9301A53BC00C47FFC /* opt_flatten_nested_if_blocks.cpp */,
-				F5124FFA301A53BC00C47FFC /* opt_flip_matrices.cpp */,
 				F5124FFB301A53BC00C47FFC /* opt_function_inlining.cpp */,
 				F5124FFC301A53BC00C47FFC /* opt_if_simplification.cpp */,
 				F5124FFD301A53BC00C47FFC /* opt_minmax.cpp */,
@@ -634,13 +632,13 @@
 			children = (
 				F545CB23301F08C10038724F /* blake3 */,
 				F545CAD0301EFC8A0038724F /* format */,
-				F545CA7E301E4D040038724F /* sha1 */,
 				F5125047301A53BC00C47FFC /* bitscan.h */,
 				F5125048301A53BC00C47FFC /* bitset.h */,
 				F51250FB301BAA4300C47FFC /* blob.h */,
 				F51250FC301BAA4300C47FFC /* blob.c */,
 				F5125049301A53BC00C47FFC /* build_id.h */,
 				F512504A301A53BC00C47FFC /* detect_os.h */,
+				F545CD8B301F18450038724F /* fast_idiv_by_const.h */,
 				F512504B301A53BC00C47FFC /* fast_urem_by_const.h */,
 				F512504D301A53BC00C47FFC /* futex.h */,
 				F512504E301A53BC00C47FFC /* half_float.h */,
@@ -686,6 +684,8 @@
 				F545CAA2301E54C10038724F /* u_printf.c */,
 				F545CD7D301F14340038724F /* u_process.h */,
 				F545CD7E301F14340038724F /* u_process.c */,
+				F545CDDB301F23FF0038724F /* u_range_remap.h */,
+				F545CDDC301F23FF0038724F /* u_range_remap.c */,
 				F5125065301A53BC00C47FFC /* u_string.h */,
 				F5125066301A53BC00C47FFC /* xxhash.h */,
 			);
@@ -704,16 +704,6 @@
 			name = src;
 			path = ../mesa/src;
 			sourceTree = SOURCE_ROOT;
-		};
-		F545CA7E301E4D040038724F /* sha1 */ = {
-			isa = PBXGroup;
-			children = (
-				F545CA7B301E4D040038724F /* README */,
-				F545CA7C301E4D040038724F /* sha1.h */,
-				F545CA7D301E4D040038724F /* sha1.c */,
-			);
-			path = sha1;
-			sourceTree = "<group>";
 		};
 		F545CA98301E54550038724F /* impl */ = {
 			isa = PBXGroup;
@@ -796,10 +786,21 @@
 			path = glsl;
 			sourceTree = "<group>";
 		};
+		F545CAF7301F04D80038724F /* nir */ = {
+			isa = PBXGroup;
+			children = (
+				F545CAF4301F04D80038724F /* nir_intrinsics.h */,
+				F545CAF5301F04D80038724F /* nir_intrinsics_indices.h */,
+				F545CAF6301F04D80038724F /* nir_opcodes.h */,
+			);
+			path = nir;
+			sourceTree = "<group>";
+		};
 		F545CAFA301F04D80038724F /* compiler */ = {
 			isa = PBXGroup;
 			children = (
 				F545CAF3301F04D80038724F /* glsl */,
+				F545CAF7301F04D80038724F /* nir */,
 				F545CAF8301F04D80038724F /* builtin_types.h */,
 				F545CAF9301F04D80038724F /* builtin_types.c */,
 			);
@@ -925,11 +926,10 @@
 				F545CA85301E4D6C0038724F /* u_cpu_detect.c in Sources */,
 				F545CAA3301E54C10038724F /* u_printf.c in Sources */,
 				F5125098301A53BC00C47FFC /* set.c in Sources */,
-				F512509A301A53BC00C47FFC /* opt_flip_matrices.cpp in Sources */,
 				F51250EC301A56E000C47FFC /* standalone_scaffolding.cpp in Sources */,
 				F512509E301A53BC00C47FFC /* string_buffer.c in Sources */,
+				F51A71FE301F3F1F00DEB539 /* u_range_remap.c in Sources */,
 				F512509F301A53BC00C47FFC /* lower_mat_op_to_vec.cpp in Sources */,
-				F545CA7F301E4D040038724F /* sha1.c in Sources */,
 				F51250A2301A53BC00C47FFC /* softfloat.c in Sources */,
 				F545CA4A301E43710038724F /* lower_precision.cpp in Sources */,
 				F51250A4301A53BC00C47FFC /* pp_standalone_scaffolding.c in Sources */,
@@ -939,14 +939,16 @@
 				F51250AA301A53BC00C47FFC /* builtin_functions.cpp in Sources */,
 				F51250AB301A53BC00C47FFC /* opt_function_inlining.cpp in Sources */,
 				F51250AC301A53BC00C47FFC /* symbol_table.c in Sources */,
-				F51A71FB301F3C7800DEB539 /* prog_parameter.c in Sources */,
 				F545CA47301E43490038724F /* lower_builtins.cpp in Sources */,
 				F545CAA6301E55020038724F /* u_call_once.c in Sources */,
 				F51250AD301A53BC00C47FFC /* getopt_long.c in Sources */,
 				F51250AE301A53BC00C47FFC /* glsl_parser_extras.cpp in Sources */,
 				F51250AF301A53BC00C47FFC /* extensions_table.c in Sources */,
 				F51250B1301A53BC00C47FFC /* propagate_invariance.cpp in Sources */,
+				F545CD81301F145D0038724F /* prog_parameter.c in Sources */,
+				F545CD7F301F14340038724F /* u_process.c in Sources */,
 				F51250B2301A53BC00C47FFC /* standalone.cpp in Sources */,
+				F545CB36301F090C0038724F /* log.c in Sources */,
 				F51250B3301A53BC00C47FFC /* lower_vector_derefs.cpp in Sources */,
 				F51250B4301A53BC00C47FFC /* hash_table.c in Sources */,
 				F51250B6301A53BC00C47FFC /* ir_function_detect_recursion.cpp in Sources */,
@@ -954,7 +956,6 @@
 				F545CA90301E4EE60038724F /* mesa-sha1.c in Sources */,
 				F51250BE301A53BC00C47FFC /* ir_basic_block.cpp in Sources */,
 				F51250BF301A53BC00C47FFC /* opt_tree_grafting.cpp in Sources */,
-				F51A71FC301F3C9400DEB539 /* log.c in Sources */,
 				F51250C1301A53BC00C47FFC /* ast_function.cpp in Sources */,
 				F51250C3301A53BC00C47FFC /* ir_hierarchical_visitor.cpp in Sources */,
 				F51250C4301A53BC00C47FFC /* opt_algebraic.cpp in Sources */,
@@ -1001,7 +1002,6 @@
 				F51250E8301A53BC00C47FFC /* ir_print_visitor.cpp in Sources */,
 				F5125101301BAC4000C47FFC /* patch.cpp in Sources */,
 				F5124F6A301A53AD00C47FFC /* ir_print_spirv_visitor.cpp in Sources */,
-				F51A71FD301F3CA100DEB539 /* u_process.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

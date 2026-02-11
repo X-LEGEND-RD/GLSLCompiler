@@ -34,18 +34,20 @@
 #define SpvBuiltInFragColor 21
 
 static const unsigned int storage_mode[] = {
-   SpvStorageClassFunction,       // ir_var_auto
-   SpvStorageClassUniform,        // ir_var_uniform
-   SpvStorageClassWorkgroup,      // ir_var_shader_storage
-   SpvStorageClassCrossWorkgroup, // ir_var_shader_shared
-   SpvStorageClassInput,          // ir_var_shader_in
-   SpvStorageClassOutput,         // ir_var_shader_out
-   SpvStorageClassInput,          // ir_var_function_in
-   SpvStorageClassOutput,         // ir_var_function_out
-   SpvStorageClassWorkgroup,      // ir_var_function_inout
-   SpvStorageClassPushConstant,   // ir_var_const_in
-   SpvStorageClassInput,          // ir_var_system_value
-   SpvStorageClassFunction,       // ir_var_temporary
+   SpvStorageClassFunction,                  // ir_var_auto
+   SpvStorageClassUniform,                   // ir_var_uniform
+   SpvStorageClassWorkgroup,                 // ir_var_shader_storage
+   SpvStorageClassCrossWorkgroup,            // ir_var_shader_shared
+   SpvStorageClassTaskPayloadWorkgroupEXT,   // ir_var_shader_task_payload
+   SpvStorageClassInput,                     // ir_var_shader_in
+   SpvStorageClassOutput,                    // ir_var_shader_out
+   SpvStorageClassTileImageEXT,              // ir_var_shader_pixel_local_storage
+   SpvStorageClassInput,                     // ir_var_function_in
+   SpvStorageClassOutput,                    // ir_var_function_out
+   SpvStorageClassWorkgroup,                 // ir_var_function_inout
+   SpvStorageClassPushConstant,              // ir_var_const_in
+   SpvStorageClassInput,                     // ir_var_system_value
+   SpvStorageClassFunction,                  // ir_var_temporary
 };
 
 static const unsigned int stage_type[] = {
@@ -54,7 +56,8 @@ static const unsigned int stage_type[] = {
    SpvExecutionModelTessellationEvaluation,
    SpvExecutionModelGeometry,
    SpvExecutionModelFragment,
-   SpvExecutionModelGLCompute,
+   SpvExecutionModelTaskEXT,
+   SpvExecutionModelMeshEXT,
 };
 
 static unsigned int get_vector_elements_from_image_format(GLenum format)
@@ -307,9 +310,9 @@ spirv_buffer::spirv_buffer()
 
 extern "C" {
 void
-_mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_parse_state* state, unsigned binding)
+_mesa_print_spirv(spirv_buffer *f, ir_exec_list *instructions, struct _mesa_glsl_parse_state* state, unsigned binding)
 {
-   gl_shader_stage stage = state->stage;
+   mesa_shader_stage stage = state->stage;
    unsigned version = state->language_version;
    bool es = state->es_shader;
 
@@ -336,7 +339,7 @@ _mesa_print_spirv(spirv_buffer *f, exec_list *instructions, struct _mesa_glsl_pa
    // spirv visitor
    ir_print_spirv_visitor v(f);
 
-   foreach_in_list(ir_instruction, ir, instructions) {
+   ir_foreach_in_list(ir_instruction, ir, instructions) {
       ir->accept(&v);
    }
 
@@ -777,7 +780,7 @@ ir_print_spirv_visitor::visit_value(ir_rvalue *ir)
 {
    if (ir->ir_value == 0) {
       if (ir->ir_pointer == 0)
-         unreachable("pointer is empty");
+         UNREACHABLE("pointer is empty");
 
       unsigned int type_id = visit_type(ir->type);
       unsigned int value_id = f->id++;
@@ -902,7 +905,7 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
                break;
 
             default:
-               unreachable("Unexpected shader type");
+               UNREACHABLE("Unexpected shader type");
                break;
             }
          }
@@ -957,11 +960,11 @@ ir_print_spirv_visitor::visit(ir_function_signature *ir)
    unsigned int label_id = f->id++;
    f->functions.opcode(2, SpvOpLabel, label_id);
 
-   foreach_in_list(ir_variable, inst, &ir->parameters) {
+   ir_foreach_in_list(ir_variable, inst, &ir->parameters) {
       inst->accept(this);
    }
 
-   foreach_in_list(ir_instruction, inst, &ir->body) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->body) {
       inst->accept(this);
    }
 
@@ -978,7 +981,7 @@ ir_print_spirv_visitor::visit(ir_function_signature *ir)
 void
 ir_print_spirv_visitor::visit(ir_function *ir)
 {
-   foreach_in_list(ir_function_signature, sig, &ir->signatures) {
+   ir_foreach_in_list(ir_function_signature, sig, &ir->signatures) {
       sig->accept(this);
    }
 }
@@ -1020,7 +1023,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
    if (ir->operation == ir_unop_saturate) {
       if (ir->num_operands != 1) {
-         unreachable("unknown number of operands");
+         UNREACHABLE("unknown number of operands");
          return;
       }
 
@@ -1034,7 +1037,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       ir->ir_value = value_id;
    } else if (ir->operation == ir_binop_mul) {
       if (ir->num_operands != 2) {
-         unreachable("unknown number of operands");
+         UNREACHABLE("unknown number of operands");
          return;
       }
 
@@ -1052,7 +1055,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
             operands[0] = ir->operands[1]->ir_value;
             operands[1] = ir->operands[0]->ir_value;
          } else {
-            unreachable("unknown multiply operation");
+            UNREACHABLE("unknown multiply operation");
          }
       } else if (glsl_type_is_vector(ir->operands[0]->type)) {
          if (glsl_type_is_scalar(ir->operands[1]->type)) {
@@ -1062,7 +1065,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          } else if (glsl_type_is_matrix(ir->operands[1]->type)) {
             opcode = SpvOpVectorTimesMatrix;
          } else {
-            unreachable("unknown multiply operation");
+            UNREACHABLE("unknown multiply operation");
          }
       } else if (glsl_type_is_matrix(ir->operands[0]->type)) {
          if (glsl_type_is_scalar(ir->operands[1]->type)) {
@@ -1072,17 +1075,17 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          } else if (glsl_type_is_matrix(ir->operands[1]->type)) {
             opcode = SpvOpMatrixTimesMatrix;
          } else {
-            unreachable("unknown multiply operation");
+            UNREACHABLE("unknown multiply operation");
          }
       } else {
-         unreachable("unknown multiply operation");
+         UNREACHABLE("unknown multiply operation");
       }
       f->codes.opcode(5, opcode, type_id, value_id, operands[0], operands[1]);
 
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_unop_bit_not && ir->operation <= ir_last_unop) {
       if (ir->num_operands != 1) {
-         unreachable("unknown number of operands");
+         UNREACHABLE("unknown number of operands");
          return;
       }
 
@@ -1090,7 +1093,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned short opcode;
       switch (ir->operation) {
       default:
-         unreachable("unknown operation");
+         UNREACHABLE("unknown operation");
       case ir_unop_bit_not:
          f->codes.opcode(4, SpvOpNot, type_id, value_id, operands[0]);
          break;
@@ -1166,7 +1169,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_binop_add && ir->operation <= ir_last_binop) {
       if (ir->num_operands != 2) {
-         unreachable("unknown number of operands");
+         UNREACHABLE("unknown number of operands");
          return;
       }
 
@@ -1186,7 +1189,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
                unsigned int id = ir->operands[i]->ir_value;
                f->codes.opcode(3 + glsl_get_components(ir->type), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
             } else {
-               unreachable("operands must match result or be scalar");
+               UNREACHABLE("operands must match result or be scalar");
             }
          }
          break;
@@ -1224,7 +1227,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned short opcode;
       switch (ir->operation) {
       default:
-         unreachable("unknown operation");
+         UNREACHABLE("unknown operation");
       case ir_binop_add:
       case ir_binop_sub:
       case ir_binop_div:
@@ -1266,7 +1269,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_triop_fma && ir->operation <= ir_last_triop) {
       if (ir->num_operands != 3) {
-         unreachable("unknown number of operands");
+         UNREACHABLE("unknown number of operands");
          return;
       }
 
@@ -1284,7 +1287,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
                unsigned int id = ir->operands[i]->ir_value;
                f->codes.opcode(3 + glsl_get_components(ir->type), SpvOpCompositeConstruct, type_id, operands[i], id, id, id, id);
             } else {
-               unreachable("operands must match result or be scalar");
+               UNREACHABLE("operands must match result or be scalar");
             }
          }
       }
@@ -1293,7 +1296,7 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned short opcode;
       switch (ir->operation) {
       default:
-         unreachable("unknown operation");
+         UNREACHABLE("unknown operation");
       case ir_triop_fma:
       case ir_triop_lrp:
          switch (ir->operation) {
@@ -1372,7 +1375,7 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
             combined_type = &glsl_type_builtin_vec4;
             break;
          default:
-            unreachable("unknown component");
+            UNREACHABLE("unknown component");
          }
          unsigned int type_id = visit_type(combined_type);
          coordinate_id = f->id++;
@@ -1439,7 +1442,7 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
       component_id = ir->lod_info.component->ir_value;
       break;
    case ir_samples_identical:
-      unreachable("ir_samples_identical was already handled");
+      UNREACHABLE("ir_samples_identical was already handled");
    };
 
    unsigned int image_operand_type = 0;
@@ -1860,7 +1863,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
             case GLSL_TYPE_INT:   value = ir->value.i[0];         break;
             case GLSL_TYPE_FLOAT: value = *(int*)&ir->value.f[0]; break;
             default:
-               unreachable("Invalid constant type");
+               UNREACHABLE("Invalid constant type");
             }
             f->types.opcode(4, SpvOpConstant, type_id, constant_id, value);
          }
@@ -1900,7 +1903,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
                ids[i] = visit_constant_value(ir->value.f[i]);
                break;
             default:
-               unreachable("Invalid constant type");
+               UNREACHABLE("Invalid constant type");
             }
          }
          unsigned int value_id = f->id++;
@@ -1926,7 +1929,7 @@ ir_print_spirv_visitor::visit(ir_call *ir)
    unsigned int parameters_pointer[16] = {};
    unsigned int i = 0;
 
-   foreach_in_list(ir_rvalue, param, &ir->actual_parameters) {
+   ir_foreach_in_list(ir_rvalue, param, &ir->actual_parameters) {
       param->accept(this);
       visit_value(param);
 
@@ -2071,7 +2074,7 @@ ir_print_spirv_visitor::visit(ir_if *ir)
    f->codes.opcode(4, SpvOpBranchConditional, ir->condition->ir_value, label_then_id, label_else_id);
    f->codes.opcode(2, SpvOpLabel, label_then_id);
 
-   foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
       inst->parent = ir;
       inst->accept(this);
    }
@@ -2080,7 +2083,7 @@ ir_print_spirv_visitor::visit(ir_if *ir)
       f->codes.opcode(2, SpvOpBranch, label_end_id);
       f->codes.opcode(2, SpvOpLabel, label_else_id);
 
-      foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
+      ir_foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
          inst->parent = ir;
          inst->accept(this);
       }
@@ -2107,7 +2110,7 @@ ir_print_spirv_visitor::visit(ir_loop *ir)
    ir->ir_label = label_id;
    ir->ir_label_break = label_outer_id;
 
-   foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
       if (ir->body_instructions.tail_sentinel.prev == inst) {
          f->codes.opcode(2, SpvOpBranch, label_continue_id);
          f->codes.opcode(2, SpvOpLabel, label_continue_id);

@@ -42,7 +42,7 @@ static bool is_binop_func_like(ir_expression_operation op, const glsl_type* type
 
 extern "C" {
 void
-_mesa_print_glsl(FILE *f, int(*fprintf)(FILE *, const char *, ...), exec_list *instructions, struct _mesa_glsl_parse_state *state)
+_mesa_print_glsl(FILE *f, int(*fprintf)(FILE *, const char *, ...), ir_exec_list *instructions, struct _mesa_glsl_parse_state *state)
 {
    if (state) {
       fprintf(f, "#version %i", state->language_version);
@@ -69,7 +69,7 @@ _mesa_print_glsl(FILE *f, int(*fprintf)(FILE *, const char *, ...), exec_list *i
       }
    }
 
-   foreach_in_list(ir_instruction, ir, instructions) {
+   ir_foreach_in_list(ir_instruction, ir, instructions) {
       ir_print_glsl_visitor v(f, fprintf, state);
 
       if (ir->ir_type == ir_type_variable) {
@@ -208,7 +208,7 @@ ir_print_glsl_visitor::visit(ir_function_signature *ir)
 
    print_type(f, fprintf, ir->return_type, state->language_version);
    fprintf(f, " %s(", ir->function_name());
-   foreach_in_list(ir_variable, inst, &ir->parameters) {
+   ir_foreach_in_list(ir_variable, inst, &ir->parameters) {
       if (inst != ir->parameters.head_sentinel.next)
          fprintf(f, ", ");
       inst->accept(this);
@@ -216,7 +216,7 @@ ir_print_glsl_visitor::visit(ir_function_signature *ir)
    fprintf(f, ")\n{\n");
 
    indentation++;
-   foreach_in_list(ir_instruction, inst, &ir->body) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->body) {
       indent();
       inst->accept(this);
       if (inst->ir_type == ir_type_if)
@@ -234,7 +234,7 @@ ir_print_glsl_visitor::visit(ir_function_signature *ir)
 void
 ir_print_glsl_visitor::visit(ir_function *ir)
 {
-   foreach_in_list(ir_function_signature, sig, &ir->signatures) {
+   ir_foreach_in_list(ir_function_signature, sig, &ir->signatures) {
       indent();
       sig->accept(this);
    }
@@ -408,7 +408,7 @@ ir_print_glsl_visitor::visit(ir_texture *ir)
       ir->lod_info.component->accept(this);
       break;
    case ir_samples_identical:
-      unreachable("ir_samples_identical was already handled");
+      UNREACHABLE("ir_samples_identical was already handled");
    };
    fprintf(f, ")");
 }
@@ -537,7 +537,7 @@ ir_print_glsl_visitor::visit(ir_constant *ir)
                fprintf(f, "%f", ir->value.d[i]);
             break;
          default:
-            unreachable("Invalid constant type");
+            UNREACHABLE("Invalid constant type");
          }
       }
    }
@@ -556,7 +556,7 @@ ir_print_glsl_visitor::visit(ir_call *ir)
    }
    fprintf(f, "%s", ir->callee_name());
    fprintf(f, "(");
-   foreach_in_list(ir_rvalue, param, &ir->actual_parameters) {
+   ir_foreach_in_list(ir_rvalue, param, &ir->actual_parameters) {
       if (param != ir->actual_parameters.head_sentinel.next)
          fprintf(f, ", ");
       param->accept(this);
@@ -604,7 +604,7 @@ ir_print_glsl_visitor::visit(ir_if *ir)
    fprintf(f, ") {\n");
    indentation++;
 
-   foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->then_instructions) {
       indent();
       inst->accept(this);
       fprintf(f, ";\n");
@@ -619,7 +619,7 @@ ir_print_glsl_visitor::visit(ir_if *ir)
       fprintf(f, "else {\n");
       indentation++;
 
-      foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
+      ir_foreach_in_list(ir_instruction, inst, &ir->else_instructions) {
          indent();
          inst->accept(this);
          fprintf(f, ";\n");
@@ -636,7 +636,7 @@ ir_print_glsl_visitor::visit(ir_loop *ir)
    fprintf(f, "while (true) {\n");
    indentation++;
 
-   foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
+   ir_foreach_in_list(ir_instruction, inst, &ir->body_instructions) {
       indent();
       inst->accept(this);
       fprintf(f, "\n");

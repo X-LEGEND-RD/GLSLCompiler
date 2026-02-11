@@ -16,8 +16,8 @@ flex -o compiler/glsl/glcpp/glcpp-lex.c ../mesa/src/compiler/glsl/glcpp/glcpp-le
 byacc -o compiler/glsl/glcpp/glcpp-parse.c -p glcpp_parser_ --defines=compiler/glsl/glcpp/glcpp-parse.h ../mesa/src/compiler/glsl/glcpp/glcpp-parse.y
 
 mkdir compiler/nir &>/dev/null
-python3 ../mesa/src/compiler/nir/nir_intrinsics_h.py --outdir compiler/nir
-python3 ../mesa/src/compiler/nir/nir_intrinsics_indices_h.py --outdir compiler/nir
+python3 ../mesa/src/compiler/nir/nir_intrinsics_h.py --out compiler/nir/nir_intrinsics.h
+python3 ../mesa/src/compiler/nir/nir_intrinsics_indices_h.py --out compiler/nir/nir_intrinsics_indices.h
 python3 ../mesa/src/compiler/nir/nir_opcodes_h.py >compiler/nir/nir_opcodes.h
 
 mkdir util &>/dev/null

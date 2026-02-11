@@ -31,7 +31,7 @@
 #include "program/symbol_table.h"
 
 extern "C" void
-_mesa_print_glsl(FILE *f, int(*fprintf)(FILE *, const char *, ...), exec_list *instructions, struct _mesa_glsl_parse_state *state);
+_mesa_print_glsl(FILE *f, int(*fprintf)(FILE *, const char *, ...), ir_exec_list *instructions, struct _mesa_glsl_parse_state *state);
 
 /**
  * Abstract base class of visitors of IR instruction trees
