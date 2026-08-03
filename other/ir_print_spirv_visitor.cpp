@@ -325,19 +325,6 @@ _mesa_print_spirv(spirv_buffer *f, ir_exec_list *instructions, struct _mesa_glsl
    // ExtInstImport
    f->ext_inst_import_id = f->id++;
 
-   if (es) {
-      if (stage == MESA_SHADER_FRAGMENT) {
-         f->precision_float = GLSL_PRECISION_MEDIUM;
-         f->precision_int = GLSL_PRECISION_MEDIUM;
-      } else {
-         f->precision_float = GLSL_PRECISION_HIGH;
-         f->precision_int = GLSL_PRECISION_MEDIUM;
-      }
-   } else {
-      f->precision_float = GLSL_PRECISION_NONE;
-      f->precision_int = GLSL_PRECISION_NONE;
-   }
-
    // spirv visitor
    ir_print_spirv_visitor v(f);
 
@@ -798,8 +785,9 @@ ir_print_spirv_visitor::visit_value(ir_rvalue *ir)
       f->codes.opcode(4, SpvOpLoad, type_id, value_id, ir->ir_pointer);
 
       ir->ir_value = value_id;
-
+#if 0
       visit_precision(ir->ir_value, ir->type->base_type, GLSL_PRECISION_NONE);
+#endif
    }
 }
 
@@ -809,12 +797,12 @@ ir_print_spirv_visitor::visit_precision(unsigned int id, unsigned int type, unsi
    switch (type) {
    case GLSL_TYPE_UINT:
    case GLSL_TYPE_INT:
-      if (precision == GLSL_PRECISION_MEDIUM || f->precision_int == GLSL_PRECISION_MEDIUM) {
+      if (precision == GLSL_PRECISION_MEDIUM) {
          f->decorates.opcode(3, SpvOpDecorate, id, SpvDecorationRelaxedPrecision);
       }
       break;
    case GLSL_TYPE_FLOAT:
-      if (precision == GLSL_PRECISION_MEDIUM || f->precision_float == GLSL_PRECISION_MEDIUM) {
+      if (precision == GLSL_PRECISION_MEDIUM) {
          f->decorates.opcode(3, SpvOpDecorate, id, SpvDecorationRelaxedPrecision);
       }
       break;
@@ -1038,9 +1026,22 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          UNREACHABLE("unknown number of operands");
 
       unsigned int value_id = f->id++;
-      unsigned int opcode = GLSLstd450FClamp;
-      unsigned int zero_id = visit_constant_value(0.0f, ir->type->vector_elements);
-      unsigned int one_id = visit_constant_value(1.0f, ir->type->vector_elements);
+      unsigned int opcode;
+      unsigned int zero_id;
+      unsigned int one_id;
+      if (float_type) {
+         opcode = GLSLstd450FClamp;
+         zero_id = visit_constant_value(0.0f, ir->type->vector_elements);
+         one_id = visit_constant_value(1.0f, ir->type->vector_elements);
+      } else if (signed_type) {
+         opcode = GLSLstd450SClamp;
+         zero_id = visit_constant_value(0, ir->type->vector_elements);
+         one_id = visit_constant_value(1, ir->type->vector_elements);
+      } else {
+         opcode = GLSLstd450UClamp;
+         zero_id = visit_constant_value(0u, ir->type->vector_elements);
+         one_id = visit_constant_value(1u, ir->type->vector_elements);
+      }
 
       f->codes.opcode(8, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], zero_id, one_id);
 
@@ -1100,17 +1101,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       switch (ir->operation) {
       default:
          UNREACHABLE("unknown operation");
-      case ir_unop_bit_not:
-         f->codes.opcode(4, SpvOpNot, type_id, value_id, operands[0]);
-         break;
-      case ir_unop_logic_not:
-         f->codes.opcode(4, SpvOpLogicalNot, type_id, value_id, operands[0]);
-         break;
-      case ir_unop_neg:
-         opcode = float_type ? SpvOpFNegate : SpvOpSNegate;
-
-         f->codes.opcode(4, opcode, type_id, value_id, operands[0]);
-         break;
       case ir_unop_rcp: {
          opcode = float_type ? SpvOpFDiv : signed_type ? SpvOpSDiv : SpvOpUDiv;
          unsigned int one_id = visit_constant_value(1.0f);
@@ -1133,40 +1123,97 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_unop_round_even:
       case ir_unop_sin:
       case ir_unop_cos:
+      case ir_unop_atan:
+      case ir_unop_pack_snorm_2x16:
+      case ir_unop_pack_snorm_4x8:
+      case ir_unop_pack_unorm_2x16:
+      case ir_unop_pack_unorm_4x8:
+      case ir_unop_pack_half_2x16:
+      case ir_unop_unpack_snorm_2x16:
+      case ir_unop_unpack_snorm_4x8:
+      case ir_unop_unpack_unorm_2x16:
+      case ir_unop_unpack_unorm_4x8:
+      case ir_unop_unpack_half_2x16:
+      case ir_unop_find_msb:
+      case ir_unop_find_lsb:
          switch (ir->operation) {
-         default:
-         case ir_unop_abs:        opcode = float_type ? GLSLstd450FAbs  : GLSLstd450SAbs;  break;
-         case ir_unop_sign:       opcode = float_type ? GLSLstd450FSign : GLSLstd450SSign; break;
-         case ir_unop_rsq:        opcode = GLSLstd450InverseSqrt;                          break;
-         case ir_unop_sqrt:       opcode = GLSLstd450Sqrt;                                 break;
-         case ir_unop_exp:        opcode = GLSLstd450Exp;                                  break;
-         case ir_unop_log:        opcode = GLSLstd450Log;                                  break;
-         case ir_unop_exp2:       opcode = GLSLstd450Exp2;                                 break;
-         case ir_unop_log2:       opcode = GLSLstd450Log2;                                 break;
-         case ir_unop_trunc:      opcode = GLSLstd450Trunc;                                break;
-         case ir_unop_ceil:       opcode = GLSLstd450Ceil;                                 break;
-         case ir_unop_floor:      opcode = GLSLstd450Floor;                                break;
-         case ir_unop_fract:      opcode = GLSLstd450Fract;                                break;
-         case ir_unop_round_even: opcode = GLSLstd450RoundEven;                            break;
-         case ir_unop_sin:        opcode = GLSLstd450Sin;                                  break;
-         case ir_unop_cos:        opcode = GLSLstd450Cos;                                  break;
+         default:                         UNREACHABLE("unknown operation");
+         case ir_unop_abs:                opcode = float_type ? GLSLstd450FAbs  : GLSLstd450SAbs;  break;
+         case ir_unop_sign:               opcode = float_type ? GLSLstd450FSign : GLSLstd450SSign; break;
+         case ir_unop_rsq:                opcode = GLSLstd450InverseSqrt;     break;
+         case ir_unop_sqrt:               opcode = GLSLstd450Sqrt;            break;
+         case ir_unop_exp:                opcode = GLSLstd450Exp;             break;
+         case ir_unop_log:                opcode = GLSLstd450Log;             break;
+         case ir_unop_exp2:               opcode = GLSLstd450Exp2;            break;
+         case ir_unop_log2:               opcode = GLSLstd450Log2;            break;
+         case ir_unop_trunc:              opcode = GLSLstd450Trunc;           break;
+         case ir_unop_ceil:               opcode = GLSLstd450Ceil;            break;
+         case ir_unop_floor:              opcode = GLSLstd450Floor;           break;
+         case ir_unop_fract:              opcode = GLSLstd450Fract;           break;
+         case ir_unop_round_even:         opcode = GLSLstd450RoundEven;       break;
+         case ir_unop_sin:                opcode = GLSLstd450Sin;             break;
+         case ir_unop_cos:                opcode = GLSLstd450Cos;             break;
+         case ir_unop_atan:               opcode = GLSLstd450Atan;            break;
+         case ir_unop_pack_snorm_2x16:    opcode = GLSLstd450PackSnorm2x16;   break;
+         case ir_unop_pack_snorm_4x8:     opcode = GLSLstd450PackSnorm4x8;    break;
+         case ir_unop_pack_unorm_2x16:    opcode = GLSLstd450PackUnorm2x16;   break;
+         case ir_unop_pack_unorm_4x8:     opcode = GLSLstd450PackUnorm4x8;    break;
+         case ir_unop_pack_half_2x16:     opcode = GLSLstd450PackHalf2x16;    break;
+         case ir_unop_unpack_snorm_2x16:  opcode = GLSLstd450UnpackSnorm2x16; break;
+         case ir_unop_unpack_snorm_4x8:   opcode = GLSLstd450UnpackSnorm4x8;  break;
+         case ir_unop_unpack_unorm_2x16:  opcode = GLSLstd450UnpackUnorm2x16; break;
+         case ir_unop_unpack_unorm_4x8:   opcode = GLSLstd450UnpackUnorm4x8;  break;
+         case ir_unop_unpack_half_2x16:   opcode = GLSLstd450UnpackHalf2x16;  break;
+         case ir_unop_find_msb:           opcode = signed_type ? GLSLstd450FindSMsb : GLSLstd450FindUMsb;  break;
+         case ir_unop_find_lsb:           opcode = GLSLstd450FindILsb;        break;
+         case ir_unop_interpolate_at_centroid:  opcode = GLSLstd450InterpolateAtCentroid; break;
          }
          f->codes.opcode(6, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0]);
          break;
+      case ir_unop_bit_not:
+      case ir_unop_logic_not:
+      case ir_unop_neg:
       case ir_unop_f2i:
       case ir_unop_f2u:
       case ir_unop_i2f:
       case ir_unop_u2f:
       case ir_unop_i2u:
       case ir_unop_u2i:
+      case ir_unop_bitcast_i2f:
+      case ir_unop_bitcast_f2i:
+      case ir_unop_bitcast_u2f:
+      case ir_unop_bitcast_f2u:
+      case ir_unop_dFdx:
+      case ir_unop_dFdx_coarse:
+      case ir_unop_dFdx_fine:
+      case ir_unop_dFdy:
+      case ir_unop_dFdy_coarse:
+      case ir_unop_dFdy_fine:
+      case ir_unop_bitfield_reverse:
+      case ir_unop_bit_count:
          switch (ir->operation) {
-         default:
-         case ir_unop_f2i: opcode = SpvOpConvertFToS; break;
-         case ir_unop_f2u: opcode = SpvOpConvertFToU; break;
-         case ir_unop_i2f: opcode = SpvOpConvertSToF; break;
-         case ir_unop_u2f: opcode = SpvOpConvertUToF; break;
-         case ir_unop_i2u: opcode = SpvOpUConvert;    break;
-         case ir_unop_u2i: opcode = SpvOpSConvert;    break;
+         default:                   UNREACHABLE("unknown operation");
+         case ir_unop_bit_not:      opcode = SpvOpNot;               break;
+         case ir_unop_logic_not:    opcode = SpvOpLogicalNot;        break;
+         case ir_unop_neg:          opcode = float_type ? SpvOpFNegate : SpvOpSNegate; break;
+         case ir_unop_f2i:          opcode = SpvOpConvertFToS;       break;
+         case ir_unop_f2u:          opcode = SpvOpConvertFToU;       break;
+         case ir_unop_i2f:          opcode = SpvOpConvertSToF;       break;
+         case ir_unop_u2f:          opcode = SpvOpConvertUToF;       break;
+         case ir_unop_i2u:          opcode = SpvOpUConvert;          break;
+         case ir_unop_u2i:          opcode = SpvOpSConvert;          break;
+         case ir_unop_bitcast_i2f:
+         case ir_unop_bitcast_f2i:
+         case ir_unop_bitcast_u2f:
+         case ir_unop_bitcast_f2u:  opcode = SpvOpBitcast;           break;
+         case ir_unop_dFdx:         opcode = SpvOpDPdx;              break;
+         case ir_unop_dFdx_coarse:  opcode = SpvOpDPdxCoarse;        break;
+         case ir_unop_dFdx_fine:    opcode = SpvOpDPdxFine;          break;
+         case ir_unop_dFdy:         opcode = SpvOpDPdy;              break;
+         case ir_unop_dFdy_coarse:  opcode = SpvOpDPdyCoarse;        break;
+         case ir_unop_dFdy_fine:    opcode = SpvOpDPdyFine;          break;
+         case ir_unop_bitfield_reverse:   opcode = SpvOpBitReverse;  break;
+         case ir_unop_bit_count:    opcode = SpvOpBitCount;          break;
          }
          f->codes.opcode(4, opcode, type_id, value_id, operands[0]);
          break;
@@ -1240,18 +1287,36 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_gequal:
       case ir_binop_equal:
       case ir_binop_nequal:
+      case ir_binop_lshift:
+      case ir_binop_rshift:
+      case ir_binop_bit_and:
+      case ir_binop_bit_xor:
+      case ir_binop_bit_or:
+      case ir_binop_logic_and:
+      case ir_binop_logic_xor:
+      case ir_binop_logic_or:
       case ir_binop_dot:
+      case ir_binop_vector_extract:
          switch (ir->operation) {
-         default:
-         case ir_binop_add:     opcode = float_type ? SpvOpFAdd                 : SpvOpIAdd;                                                     break;
-         case ir_binop_sub:     opcode = float_type ? SpvOpFSub                 : SpvOpISub;                                                     break;
-         case ir_binop_div:     opcode = float_type ? SpvOpFDiv                 : signed_type ? SpvOpSDiv              : SpvOpUDiv;              break;
-         case ir_binop_mod:     opcode = float_type ? SpvOpFMod                 : signed_type ? SpvOpSMod              : SpvOpUMod;              break;
-         case ir_binop_less:    opcode = float_type ? SpvOpFOrdLessThan         : signed_type ? SpvOpSLessThan         : SpvOpULessThan;         break;
-         case ir_binop_gequal:  opcode = float_type ? SpvOpFOrdGreaterThanEqual : signed_type ? SpvOpSGreaterThanEqual : SpvOpUGreaterThanEqual; break;
-         case ir_binop_equal:   opcode = float_type ? SpvOpFOrdEqual            : SpvOpIEqual;                                                   break;
-         case ir_binop_nequal:  opcode = float_type ? SpvOpFOrdNotEqual         : SpvOpINotEqual;                                                break;
-         case ir_binop_dot:     opcode = SpvOpDot;                                                                                               break;
+         default:                   UNREACHABLE("unknown operation");
+         case ir_binop_add:         opcode = float_type ? SpvOpFAdd                  : SpvOpIAdd;              break;
+         case ir_binop_sub:         opcode = float_type ? SpvOpFSub                  : SpvOpISub;              break;
+         case ir_binop_div:         opcode = float_type ? SpvOpFDiv                  : signed_type ? SpvOpSDiv              : SpvOpUDiv;              break;
+         case ir_binop_mod:         opcode = float_type ? SpvOpFMod                  : signed_type ? SpvOpSMod              : SpvOpUMod;              break;
+         case ir_binop_less:        opcode = float_type ? SpvOpFOrdLessThan          : signed_type ? SpvOpSLessThan         : SpvOpULessThan;         break;
+         case ir_binop_gequal:      opcode = float_type ? SpvOpFOrdGreaterThanEqual  : signed_type ? SpvOpSGreaterThanEqual : SpvOpUGreaterThanEqual; break;
+         case ir_binop_equal:       opcode = float_type ? SpvOpFOrdEqual             : SpvOpIEqual;            break;
+         case ir_binop_nequal:      opcode = float_type ? SpvOpFOrdNotEqual          : SpvOpINotEqual;         break;
+         case ir_binop_lshift:      opcode = SpvOpShiftLeftLogical;        break;
+         case ir_binop_rshift:      opcode = signed_type ? SpvOpShiftRightArithmetic : SpvOpShiftRightLogical; break;
+         case ir_binop_bit_and:     opcode = SpvOpBitwiseAnd;              break;
+         case ir_binop_bit_xor:     opcode = SpvOpBitwiseXor;              break;
+         case ir_binop_bit_or:      opcode = SpvOpBitwiseOr;               break;
+         case ir_binop_logic_and:   opcode = SpvOpLogicalAnd;              break;
+         case ir_binop_logic_xor:   opcode = SpvOpBitwiseXor;              break;
+         case ir_binop_logic_or:    opcode = SpvOpLogicalOr;               break;
+         case ir_binop_dot:         opcode = SpvOpDot;                     break;
+         case ir_binop_vector_extract: opcode = SpvOpVectorExtractDynamic; break;
          }
          f->codes.opcode(5, opcode, type_id, value_id, operands[0], operands[1]);
          break;
@@ -1259,12 +1324,18 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_max:
       case ir_binop_pow:
       case ir_binop_ldexp:
+      case ir_binop_interpolate_at_offset:
+      case ir_binop_interpolate_at_sample:
+      case ir_binop_atan2:
          switch (ir->operation) {
-         default:
-         case ir_binop_min:   opcode = float_type ? GLSLstd450FMin : signed_type ? GLSLstd450SMin : GLSLstd450UMin; break;
-         case ir_binop_max:   opcode = float_type ? GLSLstd450FMax : signed_type ? GLSLstd450SMax : GLSLstd450UMax; break;
-         case ir_binop_pow:   opcode = GLSLstd450Pow;                                                               break;
-         case ir_binop_ldexp: opcode = GLSLstd450Ldexp;                                                             break;
+         default:             UNREACHABLE("unknown operation");
+         case ir_binop_min:   opcode = float_type ? GLSLstd450FMin : signed_type ? GLSLstd450SMin : GLSLstd450UMin;  break;
+         case ir_binop_max:   opcode = float_type ? GLSLstd450FMax : signed_type ? GLSLstd450SMax : GLSLstd450UMax;  break;
+         case ir_binop_pow:   opcode = GLSLstd450Pow;    break;
+         case ir_binop_ldexp: opcode = GLSLstd450Ldexp;  break;
+         case ir_binop_interpolate_at_offset:   opcode = GLSLstd450InterpolateAtOffset;   break;
+         case ir_binop_interpolate_at_sample:   opcode = GLSLstd450InterpolateAtSample;   break;
+         case ir_binop_atan2: opcode = GLSLstd450Atan2;  break;
          }
          f->codes.opcode(7, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], operands[1]);
          break;
@@ -1280,6 +1351,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          break;
       case ir_triop_fma:
       case ir_triop_lrp:
+      case ir_triop_bitfield_extract:
+      case ir_triop_vector_insert:
          for (unsigned int i = 0; i < 3; ++i) {
             if (ir->operands[i]->type == ir->type) {
                operands[i] = ir->operands[i]->ir_value;
@@ -1302,18 +1375,30 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_triop_fma:
       case ir_triop_lrp:
          switch (ir->operation) {
-         default:
-         case ir_triop_fma: opcode = GLSLstd450Fma;                                break;
-         case ir_triop_lrp: opcode = float_type ? GLSLstd450FMix : GLSLstd450IMix; break;
+         default:             UNREACHABLE("unknown operation");
+         case ir_triop_fma:   opcode = GLSLstd450Fma;                                  break;
+         case ir_triop_lrp:   opcode = float_type ? GLSLstd450FMix : GLSLstd450IMix;   break;
          }
          f->codes.opcode(8, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], operands[1], operands[2]);
+         break;
+      case ir_triop_bitfield_extract:
+      case ir_triop_vector_insert:
+         switch (ir->operation) {
+         default:                         UNREACHABLE("unknown operation");
+         case ir_triop_bitfield_extract:  opcode = signed_type ? SpvOpBitFieldSExtract : SpvOpBitFieldUExtract;   break;
+         case ir_triop_vector_insert:     opcode = SpvOpVectorInsertDynamic;  break;
+         }
+         f->codes.opcode(6, opcode, type_id, value_id, operands[0], operands[1], operands[2]);
          break;
       }
 
       ir->ir_value = value_id;
    }
 
-   visit_precision(ir->ir_value, ir->type->base_type, GLSL_PRECISION_NONE);
+   ir_variable *var = ir->as_variable();
+   if (var) {
+      visit_precision(ir->ir_value, ir->type->base_type, var->data.precision);
+   }
 }
 
 void
@@ -1538,6 +1623,7 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
       f->codes.opcode(4, SpvOpImageQuerySamples, type_id, result_id, ir->sampler->ir_value);
       break;
    }
+
    ir->ir_value = result_id;
 #if 0
    const ir_dereference_variable* var = ir->sampler->as_dereference_variable();

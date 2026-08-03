@@ -83,9 +83,6 @@ public:
    unsigned int id;
    unsigned int binding_id;
 
-   unsigned int precision_float;
-   unsigned int precision_int;
-
    char memory_begin;
 
    bool capability_draw_parameters;
