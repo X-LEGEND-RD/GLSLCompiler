@@ -9,13 +9,14 @@ Possible options are:
     --dump-ast
     --dump-hir
     --dump-lir
-    --dump-builder
-    --dump-glsl
-    --dump-spirv
-    --dump-spirv-glsl
     --link
     --just-log
+    --lower-precision
     --version (mandatory)
+    --dump-glsl
+    --dump-spirv
+    --dump-spirv-validation
+    --dump-spirv-glsl
 ```
 
 ### Example

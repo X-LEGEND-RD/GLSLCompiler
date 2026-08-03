@@ -110,7 +110,6 @@ main(int argc, char * const* argv)
    return status;
 }
 
-#include "program.h"
 #include "glsl_parser_extras.h"
 #include "ir_print_glsl_visitor.h"
 #include "ir_print_spirv_visitor.h"

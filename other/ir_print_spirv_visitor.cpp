@@ -130,19 +130,19 @@ binary_buffer::~binary_buffer()
    ralloc_free(buffer);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, ...)
+void binary_buffer::opcode(int length, int opcode, ...)
 {
    push(opcode, length);
 
    va_list ap;
    va_start(ap, opcode);
-   for (unsigned int i = 1; i < length; ++i) {
-      push(va_arg(ap, unsigned int));
+   for (int i = 1; i < length; ++i) {
+      push(va_arg(ap, int));
    }
    va_end(ap);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, binary_buffer& buffer)
+void binary_buffer::opcode(int length, int opcode, binary_buffer& buffer)
 {
    length += buffer.count();
 
@@ -150,7 +150,7 @@ void binary_buffer::opcode(unsigned short length, unsigned short opcode, binary_
    push(buffer);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigned int v1, binary_buffer& buffer)
+void binary_buffer::opcode(int length, int opcode, int v1, binary_buffer& buffer)
 {
    length += buffer.count();
 
@@ -159,7 +159,7 @@ void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigne
    push(buffer);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, binary_buffer& buffer)
+void binary_buffer::opcode(int length, int opcode, int v1, int v2, binary_buffer& buffer)
 {
    length += buffer.count();
 
@@ -169,7 +169,7 @@ void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigne
    push(buffer);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, binary_buffer& buffer)
+void binary_buffer::opcode(int length, int opcode, int v1, int v2, int v3, binary_buffer& buffer)
 {
    length += buffer.count();
 
@@ -180,7 +180,7 @@ void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigne
    push(buffer);
 }
 
-void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, binary_buffer& buffer)
+void binary_buffer::opcode(int length, int opcode, int v1, int v2, int v3, int v4, binary_buffer& buffer)
 {
    length += buffer.count();
 
@@ -192,37 +192,37 @@ void binary_buffer::opcode(unsigned short length, unsigned short opcode, unsigne
    push(buffer);
 }
 
-void binary_buffer::text(unsigned short opcode, const char *text)
+void binary_buffer::text(int opcode, const char *text)
 {
-   unsigned int length = (int)strlen(text);
-   unsigned int count = (length + sizeof(int)) / sizeof(int);
+   int length = (int)strlen(text);
+   int count = (length + sizeof(int)) / sizeof(int);
    push(opcode, count + 1);
    push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int v1, const char *text)
+void binary_buffer::text(int opcode, int v1, const char *text)
 {
-   unsigned int length = (int)strlen(text);
-   unsigned int count = (length + sizeof(int)) / sizeof(int);
+   int length = (int)strlen(text);
+   int count = (length + sizeof(int)) / sizeof(int);
    push(opcode, count + 2);
    push(v1);
    push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, const char *text)
+void binary_buffer::text(int opcode, int v1, int v2, const char *text)
 {
-   unsigned int length = (int)strlen(text);
-   unsigned int count = (length + sizeof(int)) / sizeof(int);
+   int length = (int)strlen(text);
+   int count = (length + sizeof(int)) / sizeof(int);
    push(opcode, count + 3);
    push(v1);
    push(v2);
    push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, const char* text)
+void binary_buffer::text(int opcode, int v1, int v2, int v3, const char* text)
 {
-    unsigned int length = (int)strlen(text);
-    unsigned int count = (length + sizeof(int)) / sizeof(int);
+    int length = (int)strlen(text);
+    int count = (length + sizeof(int)) / sizeof(int);
     push(opcode, count + 4);
     push(v1);
     push(v2);
@@ -230,10 +230,10 @@ void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2
     push(text);
 }
 
-void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, const char* text)
+void binary_buffer::text(int opcode, int v1, int v2, int v3, int v4, const char* text)
 {
-    unsigned int length = (int)strlen(text);
-    unsigned int count = (length + sizeof(int)) / sizeof(int);
+    int length = (int)strlen(text);
+    int count = (length + sizeof(int)) / sizeof(int);
     push(opcode, count + 5);
     push(v1);
     push(v2);
@@ -242,16 +242,16 @@ void binary_buffer::text(unsigned short opcode, unsigned int v1, unsigned int v2
     push(text);
 }
 
-void binary_buffer::push(unsigned short low, unsigned short high)
+void binary_buffer::push(int low, int high)
 {
    push((high << 16) | low);
 }
 
-void binary_buffer::push(unsigned int value)
+void binary_buffer::push(int value)
 {
    if (index >= capacity) {
       unsigned int new_capacity = capacity ? capacity * 2 : 256;
-      unsigned int *new_buffer = (unsigned int *)ralloc_size(NULL, new_capacity * sizeof(int));
+      unsigned int *new_buffer = (unsigned int *)ralloc_size(NULL, new_capacity * sizeof(unsigned int));
       memcpy(new_buffer, buffer, capacity * sizeof(int));
       ralloc_free(buffer);
       buffer = new_buffer;
@@ -264,13 +264,13 @@ void binary_buffer::push(const char *text)
 {
    size_t len = strlen(text);
    while (len >= sizeof(int)) {
-      unsigned int value = 0;
+      int value = 0;
       memcpy(&value, text, sizeof(int));
       push(value);
       text += sizeof(int);
       len -= sizeof(int);
    }
-   unsigned int value = 0;
+   int value = 0;
    memcpy(&value, text, len);
    push(value);
 }
@@ -305,7 +305,9 @@ unsigned int& binary_buffer::operator[] (size_t i)
 
 spirv_buffer::spirv_buffer()
 {
-   memset((char*)this + offsetof(spirv_buffer, memory_begin), 0, offsetof(spirv_buffer, memory_end) - offsetof(spirv_buffer, memory_begin));
+   char *begin = &memory_begin;
+   char *end = &memory_end;
+   memset(begin, 0, end - begin);
 }
 
 extern "C" {
@@ -349,7 +351,7 @@ _mesa_print_spirv(spirv_buffer *f, ir_exec_list *instructions, struct _mesa_glsl
    f->push(0x00010000);
    f->push(0x00100000);
    f->push(bound_id);
-   f->push(0u);
+   f->push(0);
 
    // Capability
    f->opcode(2, SpvOpCapability, SpvCapabilityShader);
@@ -514,51 +516,59 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
          unsigned int dim_id = SpvDim1D;
          unsigned int format_id = SpvImageFormatUnknown;
          switch (type->sampler_dimensionality) {
-            case GLSL_SAMPLER_DIM_1D:       dim_id = SpvDim1D;          break;
-            case GLSL_SAMPLER_DIM_2D:       dim_id = SpvDim2D;          break;
-            case GLSL_SAMPLER_DIM_3D:       dim_id = SpvDim3D;          break;
-            case GLSL_SAMPLER_DIM_CUBE:     dim_id = SpvDimCube;        break;
-            case GLSL_SAMPLER_DIM_RECT:     dim_id = SpvDimRect;        break;
-            case GLSL_SAMPLER_DIM_BUF:      dim_id = SpvDimBuffer;      break;
-            case GLSL_SAMPLER_DIM_EXTERNAL: dim_id = SpvDim1D;          break;// TODO
-            case GLSL_SAMPLER_DIM_MS:       dim_id = SpvDim1D;          break;// TODO
-            case GLSL_SAMPLER_DIM_SUBPASS:  dim_id = SpvDimSubpassData; break;
+         case GLSL_SAMPLER_DIM_1D:        dim_id = SpvDim1D;            break;
+         case GLSL_SAMPLER_DIM_2D:        dim_id = SpvDim2D;            break;
+         case GLSL_SAMPLER_DIM_3D:        dim_id = SpvDim3D;            break;
+         case GLSL_SAMPLER_DIM_CUBE:      dim_id = SpvDimCube;          break;
+         case GLSL_SAMPLER_DIM_RECT:      dim_id = SpvDimRect;          break;
+         case GLSL_SAMPLER_DIM_BUF:       dim_id = SpvDimBuffer;        break;
+         case GLSL_SAMPLER_DIM_EXTERNAL:  dim_id = SpvDim1D;            break;// TODO
+         case GLSL_SAMPLER_DIM_MS:        dim_id = SpvDim1D;            break;// TODO
+         case GLSL_SAMPLER_DIM_SUBPASS:   dim_id = SpvDimSubpassData;   break;
+         default:
+            UNREACHABLE("unknown sampler dimensionality");
          }
          switch (vector_elements) {
          case 1:
             switch (type->sampled_type) {
-               case GLSL_TYPE_UINT:         format_id = SpvImageFormatR32ui;    break;
-               case GLSL_TYPE_INT:          format_id = SpvImageFormatR32i;     break;
-               case GLSL_TYPE_FLOAT:        format_id = SpvImageFormatR32f;     break;
-               case GLSL_TYPE_FLOAT16:      format_id = SpvImageFormatR16f;     break;
-               case GLSL_TYPE_UINT8:        format_id = SpvImageFormatR8ui;     break;
-               case GLSL_TYPE_INT8:         format_id = SpvImageFormatR8i;      break;
-               case GLSL_TYPE_UINT16:       format_id = SpvImageFormatR16ui;    break;
-               case GLSL_TYPE_INT16:        format_id = SpvImageFormatR16i;     break;
+            case GLSL_TYPE_UINT:    format_id = SpvImageFormatR32ui; break;
+            case GLSL_TYPE_INT:     format_id = SpvImageFormatR32i;  break;
+            case GLSL_TYPE_FLOAT:   format_id = SpvImageFormatR32f;  break;
+            case GLSL_TYPE_FLOAT16: format_id = SpvImageFormatR16f;  break;
+            case GLSL_TYPE_UINT8:   format_id = SpvImageFormatR8ui;  break;
+            case GLSL_TYPE_INT8:    format_id = SpvImageFormatR8i;   break;
+            case GLSL_TYPE_UINT16:  format_id = SpvImageFormatR16ui; break;
+            case GLSL_TYPE_INT16:   format_id = SpvImageFormatR16i;  break;
+            default:
+               UNREACHABLE("unknown sampler type");
             }
             break;
          case 2:
             switch (type->sampled_type) {
-               case GLSL_TYPE_UINT:         format_id = SpvImageFormatRg32ui;   break;
-               case GLSL_TYPE_INT:          format_id = SpvImageFormatRg32i;    break;
-               case GLSL_TYPE_FLOAT:        format_id = SpvImageFormatRg32f;    break;
-               case GLSL_TYPE_FLOAT16:      format_id = SpvImageFormatRg16f;    break;
-               case GLSL_TYPE_UINT8:        format_id = SpvImageFormatRg8ui;    break;
-               case GLSL_TYPE_INT8:         format_id = SpvImageFormatRg8i;     break;
-               case GLSL_TYPE_UINT16:       format_id = SpvImageFormatRg16ui;   break;
-               case GLSL_TYPE_INT16:        format_id = SpvImageFormatRg16i;    break;
+            case GLSL_TYPE_UINT:    format_id = SpvImageFormatRg32ui;   break;
+            case GLSL_TYPE_INT:     format_id = SpvImageFormatRg32i;    break;
+            case GLSL_TYPE_FLOAT:   format_id = SpvImageFormatRg32f;    break;
+            case GLSL_TYPE_FLOAT16: format_id = SpvImageFormatRg16f;    break;
+            case GLSL_TYPE_UINT8:   format_id = SpvImageFormatRg8ui;    break;
+            case GLSL_TYPE_INT8:    format_id = SpvImageFormatRg8i;     break;
+            case GLSL_TYPE_UINT16:  format_id = SpvImageFormatRg16ui;   break;
+            case GLSL_TYPE_INT16:   format_id = SpvImageFormatRg16i;    break;
+            default:
+               UNREACHABLE("unknown sampler type");
             }
             break;
          case 4:
             switch (type->sampled_type) {
-               case GLSL_TYPE_UINT:         format_id = SpvImageFormatRgba32ui; break;
-               case GLSL_TYPE_INT:          format_id = SpvImageFormatRgba32i;  break;
-               case GLSL_TYPE_FLOAT:        format_id = SpvImageFormatRgba32f;  break;
-               case GLSL_TYPE_FLOAT16:      format_id = SpvImageFormatRgba16f;  break;
-               case GLSL_TYPE_UINT8:        format_id = SpvImageFormatRgba8ui;  break;
-               case GLSL_TYPE_INT8:         format_id = SpvImageFormatRgba8i;   break;
-               case GLSL_TYPE_UINT16:       format_id = SpvImageFormatRgba16ui; break;
-               case GLSL_TYPE_INT16:        format_id = SpvImageFormatRgba16i;  break;
+            case GLSL_TYPE_UINT:    format_id = SpvImageFormatRgba32ui; break;
+            case GLSL_TYPE_INT:     format_id = SpvImageFormatRgba32i;  break;
+            case GLSL_TYPE_FLOAT:   format_id = SpvImageFormatRgba32f;  break;
+            case GLSL_TYPE_FLOAT16: format_id = SpvImageFormatRgba16f;  break;
+            case GLSL_TYPE_UINT8:   format_id = SpvImageFormatRgba8ui;  break;
+            case GLSL_TYPE_INT8:    format_id = SpvImageFormatRgba8i;   break;
+            case GLSL_TYPE_UINT16:  format_id = SpvImageFormatRgba16ui; break;
+            case GLSL_TYPE_INT16:   format_id = SpvImageFormatRgba16i;  break;
+            default:
+               UNREACHABLE("unknown sampler type");
             }
             break;
          }
@@ -836,14 +846,17 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
             unsigned int uniform_pointer_id = f->id++;
             unsigned int uniform_id = f->id++;
             unsigned int binding_id = f->binding_id++;
-            const char *struct_name = "Global";
 
+            const char *struct_name;
             switch (f->shader_stage) {
             case MESA_SHADER_VERTEX:
                struct_name = "GlobalVS";
                break;
             case MESA_SHADER_FRAGMENT:
                struct_name = "GlobalFS";
+               break;
+            default:
+               struct_name = "Global";
                break;
             }
 
@@ -905,8 +918,7 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
                break;
 
             default:
-               UNREACHABLE("Unexpected shader type");
-               break;
+               UNREACHABLE("unknown shader type");
             }
          }
          else {
@@ -1022,10 +1034,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
    }
 
    if (ir->operation == ir_unop_saturate) {
-      if (ir->num_operands != 1) {
+      if (ir->num_operands != 1)
          UNREACHABLE("unknown number of operands");
-         return;
-      }
 
       unsigned int value_id = f->id++;
       unsigned int opcode = GLSLstd450FClamp;
@@ -1036,10 +1046,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
       ir->ir_value = value_id;
    } else if (ir->operation == ir_binop_mul) {
-      if (ir->num_operands != 2) {
+      if (ir->num_operands != 2)
          UNREACHABLE("unknown number of operands");
-         return;
-      }
 
       unsigned int value_id = f->id++;
       unsigned short opcode;
@@ -1084,10 +1092,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_unop_bit_not && ir->operation <= ir_last_unop) {
-      if (ir->num_operands != 1) {
+      if (ir->num_operands != 1)
          UNREACHABLE("unknown number of operands");
-         return;
-      }
 
       unsigned int value_id = f->id++;
       unsigned short opcode;
@@ -1168,10 +1174,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_binop_add && ir->operation <= ir_last_binop) {
-      if (ir->num_operands != 2) {
+      if (ir->num_operands != 2)
          UNREACHABLE("unknown number of operands");
-         return;
-      }
 
       switch (ir->operation) {
       default:
@@ -1268,10 +1272,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
 
       ir->ir_value = value_id;
    } else if (ir->operation >= ir_triop_fma && ir->operation <= ir_last_triop) {
-      if (ir->num_operands != 3) {
+      if (ir->num_operands != 3)
          UNREACHABLE("unknown number of operands");
-         return;
-      }
 
       switch (ir->operation) {
       default:
@@ -1616,8 +1618,6 @@ ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
          ir->ir_pointer = pointer_id;
          break;
       }
-      unique_name(var);
-      ir->ir_pointer = var->ir_pointer;
       break;
    case ir_var_shader_in:
    case ir_var_shader_out:
@@ -1863,7 +1863,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
             case GLSL_TYPE_INT:   value = ir->value.i[0];         break;
             case GLSL_TYPE_FLOAT: value = *(int*)&ir->value.f[0]; break;
             default:
-               UNREACHABLE("Invalid constant type");
+               UNREACHABLE("invalid constant type");
             }
             f->types.opcode(4, SpvOpConstant, type_id, constant_id, value);
          }
@@ -1903,7 +1903,7 @@ ir_print_spirv_visitor::visit(ir_constant *ir)
                ids[i] = visit_constant_value(ir->value.f[i]);
                break;
             default:
-               UNREACHABLE("Invalid constant type");
+               UNREACHABLE("invalid constant type");
             }
          }
          unsigned int value_id = f->id++;
@@ -1993,7 +1993,7 @@ ir_print_spirv_visitor::visit(ir_call *ir)
       unsigned int type_id = visit_type(ir->return_deref->type);
       unsigned int result_id = f->id++;
 
-      unsigned int opcode_id;
+      unsigned int opcode_id = 0;
       unsigned int unsigned_type = glsl_unsigned_base_type_of(ir->return_deref->type->base_type) == ir->return_deref->type->base_type;
       switch (h(ir->callee_name())) {
       case h("__intrinsic_image_atomic_add"):       opcode_id = SpvOpAtomicIAdd;                                   break;

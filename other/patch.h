@@ -26,14 +26,35 @@
 #ifndef PATCH_H
 #define PATCH_H
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wcomma"
+#pragma clang diagnostic ignored "-Wconditional-uninitialized"
+#pragma clang diagnostic ignored "-Wdocumentation"
+#pragma clang diagnostic ignored "-Wshorten-64-to-32"
+#pragma clang diagnostic ignored "-Wstrict-prototypes"
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wvisibility"
+#elif defined(_MSC_VER)
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#pragma warning(disable: 4819)
+#endif
+
+#define HAVE_OPENGL 1
+#define HAVE_OPENGL_ES_1 1
 #define HAVE_OPENGL_ES_2 1
+
+#if defined(_WIN32)
+#pragma comment(lib, "Synchronization.lib")
+#define _CRT_NONSTDC_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#define _USE_MATH_DEFINES
+#else
 #define HAVE_PTHREAD
+#endif
 #define HAVE_STRUCT_TIMESPEC
 
-#include <getopt.h>
-
 #ifdef __cplusplus
-#undef signbit
 #include "glsl/ir_list.h"
 class ir_exec_node_patch : public ir_exec_node {
 public:
@@ -50,8 +71,7 @@ public:
 #undef ir_exec_node
 #endif
 
-#define __concat(x, y) x ## y
-#define _concat(x, y) __concat(x, y)
+#include "util/macros.h"
 
 struct standalone_options_patch {
    int glsl_version;
@@ -67,7 +87,7 @@ struct standalone_options_patch {
    int dump_spirv_glsl;
 };
 
-#define standalone_options _concat(standalone_options, __LINE__)
+#define standalone_options CONCAT2(standalone_options, __LINE__)
 #define standalone_options31 standalone_options_old
 #define standalone_options44 standalone_options_patch
 #include "standalone.h"
@@ -77,10 +97,10 @@ struct standalone_options_patch {
 struct nir_shader *
 glsl_to_nir_patch(struct gl_shader *shader, struct gl_context *ctx);
 
-#define glsl_to_nir _concat(glsl_to_nir, __LINE__)
+#define glsl_to_nir CONCAT2(glsl_to_nir, __LINE__)
 #define glsl_to_nir2537(shader, ...) glsl_to_nir_patch(shader, ctx)
 
-#define gl_nir_link_glsl _concat(gl_nir_link_glsl, __LINE__)
+#define gl_nir_link_glsl CONCAT2(gl_nir_link_glsl, __LINE__)
 #define gl_nir_link_glsl432(...) (void)0
 
 #endif /* PATCH_H */

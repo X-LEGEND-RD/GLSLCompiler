@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F50FFEAA3020505300DF502C /* futex.c in Sources */ = {isa = PBXBuildFile; fileRef = F50FFEA83020505300DF502C /* futex.c */; };
+		F50FFEAB3020505300DF502C /* strndup.c in Sources */ = {isa = PBXBuildFile; fileRef = F50FFEA93020505300DF502C /* strndup.c */; };
+		F50FFEAE3020509200DF502C /* u_thread.c in Sources */ = {isa = PBXBuildFile; fileRef = F50FFEAD3020509200DF502C /* u_thread.c */; };
 		F5124F69301A53AD00C47FFC /* ir_print_glsl_visitor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124F65301A53AD00C47FFC /* ir_print_glsl_visitor.cpp */; };
 		F5124F6A301A53AD00C47FFC /* ir_print_spirv_visitor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124F67301A53AD00C47FFC /* ir_print_spirv_visitor.cpp */; };
 		F512506A301A53BC00C47FFC /* opt_dead_code.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F5124FF6301A53BC00C47FFC /* opt_dead_code.cpp */; };
@@ -125,6 +128,11 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F50FFEA73020502400DF502C /* u_format.yaml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; path = u_format.yaml; sourceTree = "<group>"; };
+		F50FFEA83020505300DF502C /* futex.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = futex.c; sourceTree = "<group>"; };
+		F50FFEA93020505300DF502C /* strndup.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = strndup.c; sourceTree = "<group>"; };
+		F50FFEAC3020509200DF502C /* u_thread.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = u_thread.h; sourceTree = "<group>"; };
+		F50FFEAD3020509200DF502C /* u_thread.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = u_thread.c; sourceTree = "<group>"; };
 		F5124F4A301A537500C47FFC /* GLSLCompiler */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = GLSLCompiler; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5124F58301A53A100C47FFC /* gl.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gl.h; sourceTree = "<group>"; };
 		F5124F59301A53A100C47FFC /* glext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glext.h; sourceTree = "<group>"; };
@@ -132,7 +140,7 @@
 		F5124F5E301A53A100C47FFC /* c99_alloca.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = c99_alloca.h; sourceTree = "<group>"; };
 		F5124F5F301A53A100C47FFC /* c99_compat.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = c99_compat.h; sourceTree = "<group>"; };
 		F5124F61301A53A100C47FFC /* no_extern_c.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = no_extern_c.h; sourceTree = "<group>"; };
-		F5124F63301A53AD00C47FFC /* ir_expression_operation_glsl_strings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_expression_operation_glsl_strings.h; sourceTree = "<group>"; };
+		F5124F63301A53AD00C47FFC /* ir_expression_operation_glsl_strings.h */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.c.h; path = ir_expression_operation_glsl_strings.h; sourceTree = "<group>"; tabWidth = 3; };
 		F5124F64301A53AD00C47FFC /* ir_print_glsl_visitor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ir_print_glsl_visitor.h; sourceTree = "<group>"; };
 		F5124F65301A53AD00C47FFC /* ir_print_glsl_visitor.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ir_print_glsl_visitor.cpp; sourceTree = "<group>"; };
 		F5124F66301A53AD00C47FFC /* ir_print_spirv_visitor.h */ = {isa = PBXFileReference; indentWidth = 3; lastKnownFileType = sourcecode.c.h; path = ir_print_spirv_visitor.h; sourceTree = "<group>"; tabWidth = 3; };
@@ -154,7 +162,6 @@
 		F5124F7E301A53BC00C47FFC /* builtin_functions.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtin_functions.cpp; sourceTree = "<group>"; };
 		F5124F80301A53BC00C47FFC /* builtin_types.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtin_types.cpp; sourceTree = "<group>"; };
 		F5124F81301A53BC00C47FFC /* builtin_variables.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = builtin_variables.cpp; sourceTree = "<group>"; };
-		F5124F82301A53BC00C47FFC /* float64.glsl */ = {isa = PBXFileReference; lastKnownFileType = text; path = float64.glsl; sourceTree = "<group>"; };
 		F5124F89301A53BC00C47FFC /* glsl_lexer.ll */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.asm.llvm; path = glsl_lexer.ll; sourceTree = "<group>"; };
 		F5124F8C301A53BC00C47FFC /* glsl_parser.yy */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.yacc; path = glsl_parser.yy; sourceTree = "<group>"; };
 		F5124F8D301A53BC00C47FFC /* glsl_parser_extras.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = glsl_parser_extras.h; sourceTree = "<group>"; };
@@ -473,7 +480,6 @@
 				F5124F7E301A53BC00C47FFC /* builtin_functions.cpp */,
 				F5124F80301A53BC00C47FFC /* builtin_types.cpp */,
 				F5124F81301A53BC00C47FFC /* builtin_variables.cpp */,
-				F5124F82301A53BC00C47FFC /* float64.glsl */,
 				F5124F89301A53BC00C47FFC /* glsl_lexer.ll */,
 				F5124F8C301A53BC00C47FFC /* glsl_parser.yy */,
 				F5124F8D301A53BC00C47FFC /* glsl_parser_extras.h */,
@@ -640,6 +646,7 @@
 				F512504A301A53BC00C47FFC /* detect_os.h */,
 				F545CD8B301F18450038724F /* fast_idiv_by_const.h */,
 				F512504B301A53BC00C47FFC /* fast_urem_by_const.h */,
+				F50FFEA83020505300DF502C /* futex.c */,
 				F512504D301A53BC00C47FFC /* futex.h */,
 				F512504E301A53BC00C47FFC /* half_float.h */,
 				F512504F301A53BC00C47FFC /* half_float.c */,
@@ -668,6 +675,7 @@
 				F512505B301A53BC00C47FFC /* softfloat.c */,
 				F512505C301A53BC00C47FFC /* string_buffer.h */,
 				F512505D301A53BC00C47FFC /* string_buffer.c */,
+				F50FFEA93020505300DF502C /* strndup.c */,
 				F512505E301A53BC00C47FFC /* strndup.h */,
 				F512505F301A53BC00C47FFC /* strtod.h */,
 				F5125060301A53BC00C47FFC /* strtod.c */,
@@ -687,6 +695,8 @@
 				F545CDDB301F23FF0038724F /* u_range_remap.h */,
 				F545CDDC301F23FF0038724F /* u_range_remap.c */,
 				F5125065301A53BC00C47FFC /* u_string.h */,
+				F50FFEAC3020509200DF502C /* u_thread.h */,
+				F50FFEAD3020509200DF502C /* u_thread.c */,
 				F5125066301A53BC00C47FFC /* xxhash.h */,
 			);
 			path = util;
@@ -733,6 +743,7 @@
 				F545CAB3301EFC8A0038724F /* texcompress_s3tc_tmp.h */,
 				F545CAB4301EFC8A0038724F /* u_format.h */,
 				F545CAB5301EFC8A0038724F /* u_format.c */,
+				F50FFEA73020502400DF502C /* u_format.yaml */,
 				F545CAB7301EFC8A0038724F /* u_format_bptc.h */,
 				F545CAB8301EFC8A0038724F /* u_format_bptc.c */,
 				F545CAB9301EFC8A0038724F /* u_format_etc.h */,
@@ -921,6 +932,8 @@
 				F5125090301A53BC00C47FFC /* half_float.c in Sources */,
 				F545CA9D301E54550038724F /* threads_posix.c in Sources */,
 				F5125091301A53BC00C47FFC /* ir_expression_flattening.cpp in Sources */,
+				F50FFEAA3020505300DF502C /* futex.c in Sources */,
+				F50FFEAB3020505300DF502C /* strndup.c in Sources */,
 				F51250FD301BAA4300C47FFC /* blob.c in Sources */,
 				F5125092301A53BC00C47FFC /* linker_util.cpp in Sources */,
 				F545CA85301E4D6C0038724F /* u_cpu_detect.c in Sources */,
@@ -948,6 +961,7 @@
 				F545CD81301F145D0038724F /* prog_parameter.c in Sources */,
 				F545CD7F301F14340038724F /* u_process.c in Sources */,
 				F51250B2301A53BC00C47FFC /* standalone.cpp in Sources */,
+				F50FFEAE3020509200DF502C /* u_thread.c in Sources */,
 				F545CB36301F090C0038724F /* log.c in Sources */,
 				F51250B3301A53BC00C47FFC /* lower_vector_derefs.cpp in Sources */,
 				F51250B4301A53BC00C47FFC /* hash_table.c in Sources */,

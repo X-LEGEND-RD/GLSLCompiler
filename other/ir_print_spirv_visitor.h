@@ -37,19 +37,19 @@ class binary_buffer {
 public:
    binary_buffer();
    virtual ~binary_buffer();
-   void opcode(unsigned short length, unsigned short opcode, ...);
-   void opcode(unsigned short length, unsigned short opcode, binary_buffer& buffer);
-   void opcode(unsigned short length, unsigned short opcode, unsigned int v1, binary_buffer& buffer);
-   void opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, binary_buffer& buffer);
-   void opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, binary_buffer& buffer);
-   void opcode(unsigned short length, unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, binary_buffer& buffer);
-   void text(unsigned short opcode, const char* text);
-   void text(unsigned short opcode, unsigned int v1, const char* text);
-   void text(unsigned short opcode, unsigned int v1, unsigned int v2, const char* text);
-   void text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, const char* text);
-   void text(unsigned short opcode, unsigned int v1, unsigned int v2, unsigned int v3, unsigned int v4, const char* text);
-   void push(unsigned short low, unsigned short high);
-   void push(unsigned int value);
+   void opcode(int length, int opcode, ...);
+   void opcode(int length, int opcode, binary_buffer& buffer);
+   void opcode(int length, int opcode, int v1, binary_buffer& buffer);
+   void opcode(int length, int opcode, int v1, int v2, binary_buffer& buffer);
+   void opcode(int length, int opcode, int v1, int v2, int v3, binary_buffer& buffer);
+   void opcode(int length, int opcode, int v1, int v2, int v3, int v4, binary_buffer& buffer);
+   void text(int opcode, const char* text);
+   void text(int opcode, int v1, const char* text);
+   void text(int opcode, int v1, int v2, const char* text);
+   void text(int opcode, int v1, int v2, int v3, const char* text);
+   void text(int opcode, int v1, int v2, int v3, int v4, const char* text);
+   void push(int low, int high);
+   void push(int value);
    void push(const char *text);
    void push(binary_buffer& buffer);
    void clear();
@@ -86,7 +86,7 @@ public:
    unsigned int precision_float;
    unsigned int precision_int;
 
-   void *memory_begin;
+   char memory_begin;
 
    bool capability_draw_parameters;
    bool capability_geometry;
@@ -129,7 +129,7 @@ public:
    unsigned int input_loc;
    unsigned int output_loc;
 
-   void *memory_end;
+   char memory_end;
 };
 
 /**
