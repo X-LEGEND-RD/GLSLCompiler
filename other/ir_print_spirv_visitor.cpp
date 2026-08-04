@@ -1099,8 +1099,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned int value_id = f->id++;
       unsigned short opcode;
       switch (ir->operation) {
-      default:
-         UNREACHABLE("unknown operation");
       case ir_unop_rcp: {
          opcode = float_type ? SpvOpFDiv : signed_type ? SpvOpSDiv : SpvOpUDiv;
          unsigned int one_id = visit_constant_value(1.0f);
@@ -1137,7 +1135,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_unop_find_msb:
       case ir_unop_find_lsb:
          switch (ir->operation) {
-         default:                         UNREACHABLE("unknown operation");
          case ir_unop_abs:                opcode = float_type ? GLSLstd450FAbs  : GLSLstd450SAbs;  break;
          case ir_unop_sign:               opcode = float_type ? GLSLstd450FSign : GLSLstd450SSign; break;
          case ir_unop_rsq:                opcode = GLSLstd450InverseSqrt;     break;
@@ -1167,6 +1164,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          case ir_unop_find_msb:           opcode = signed_type ? GLSLstd450FindSMsb : GLSLstd450FindUMsb;  break;
          case ir_unop_find_lsb:           opcode = GLSLstd450FindILsb;        break;
          case ir_unop_interpolate_at_centroid:  opcode = GLSLstd450InterpolateAtCentroid; break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(6, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0]);
          break;
@@ -1192,7 +1191,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_unop_bitfield_reverse:
       case ir_unop_bit_count:
          switch (ir->operation) {
-         default:                   UNREACHABLE("unknown operation");
          case ir_unop_bit_not:      opcode = SpvOpNot;               break;
          case ir_unop_logic_not:    opcode = SpvOpLogicalNot;        break;
          case ir_unop_neg:          opcode = float_type ? SpvOpFNegate : SpvOpSNegate; break;
@@ -1214,9 +1212,13 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          case ir_unop_dFdy_fine:    opcode = SpvOpDPdyFine;          break;
          case ir_unop_bitfield_reverse:   opcode = SpvOpBitReverse;  break;
          case ir_unop_bit_count:    opcode = SpvOpBitCount;          break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(4, opcode, type_id, value_id, operands[0]);
          break;
+      default:
+         UNREACHABLE("unknown operation");
       }
 
       ir->ir_value = value_id;
@@ -1277,8 +1279,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned int value_id = f->id++;
       unsigned short opcode;
       switch (ir->operation) {
-      default:
-         UNREACHABLE("unknown operation");
       case ir_binop_add:
       case ir_binop_sub:
       case ir_binop_div:
@@ -1298,7 +1298,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_dot:
       case ir_binop_vector_extract:
          switch (ir->operation) {
-         default:                   UNREACHABLE("unknown operation");
          case ir_binop_add:         opcode = float_type ? SpvOpFAdd                  : SpvOpIAdd;              break;
          case ir_binop_sub:         opcode = float_type ? SpvOpFSub                  : SpvOpISub;              break;
          case ir_binop_div:         opcode = float_type ? SpvOpFDiv                  : signed_type ? SpvOpSDiv              : SpvOpUDiv;              break;
@@ -1317,6 +1316,8 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          case ir_binop_logic_or:    opcode = SpvOpLogicalOr;               break;
          case ir_binop_dot:         opcode = SpvOpDot;                     break;
          case ir_binop_vector_extract: opcode = SpvOpVectorExtractDynamic; break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(5, opcode, type_id, value_id, operands[0], operands[1]);
          break;
@@ -1328,7 +1329,6 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       case ir_binop_interpolate_at_sample:
       case ir_binop_atan2:
          switch (ir->operation) {
-         default:             UNREACHABLE("unknown operation");
          case ir_binop_min:   opcode = float_type ? GLSLstd450FMin : signed_type ? GLSLstd450SMin : GLSLstd450UMin;  break;
          case ir_binop_max:   opcode = float_type ? GLSLstd450FMax : signed_type ? GLSLstd450SMax : GLSLstd450UMax;  break;
          case ir_binop_pow:   opcode = GLSLstd450Pow;    break;
@@ -1336,9 +1336,13 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
          case ir_binop_interpolate_at_offset:   opcode = GLSLstd450InterpolateAtOffset;   break;
          case ir_binop_interpolate_at_sample:   opcode = GLSLstd450InterpolateAtSample;   break;
          case ir_binop_atan2: opcode = GLSLstd450Atan2;  break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(7, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], operands[1]);
          break;
+      default:
+         UNREACHABLE("unknown operation");
       }
 
       ir->ir_value = value_id;
@@ -1370,26 +1374,28 @@ ir_print_spirv_visitor::visit(ir_expression *ir)
       unsigned int value_id = f->id++;
       unsigned short opcode;
       switch (ir->operation) {
-      default:
-         UNREACHABLE("unknown operation");
       case ir_triop_fma:
       case ir_triop_lrp:
          switch (ir->operation) {
-         default:             UNREACHABLE("unknown operation");
          case ir_triop_fma:   opcode = GLSLstd450Fma;                                  break;
          case ir_triop_lrp:   opcode = float_type ? GLSLstd450FMix : GLSLstd450IMix;   break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(8, SpvOpExtInst, type_id, value_id, f->ext_inst_import_id, opcode, operands[0], operands[1], operands[2]);
          break;
       case ir_triop_bitfield_extract:
       case ir_triop_vector_insert:
          switch (ir->operation) {
-         default:                         UNREACHABLE("unknown operation");
          case ir_triop_bitfield_extract:  opcode = signed_type ? SpvOpBitFieldSExtract : SpvOpBitFieldUExtract;   break;
          case ir_triop_vector_insert:     opcode = SpvOpVectorInsertDynamic;  break;
+         default:
+            UNREACHABLE("unknown operation");
          }
          f->codes.opcode(6, opcode, type_id, value_id, operands[0], operands[1], operands[2]);
          break;
+      default:
+         UNREACHABLE("unknown operation");
       }
 
       ir->ir_value = value_id;
@@ -1738,7 +1744,8 @@ ir_print_spirv_visitor::visit(ir_dereference_variable *ir)
             case h("gl_BaseInstance"):   type = &glsl_type_builtin_int;    built_in = SpvBuiltInBaseInstance;   f->capability_draw_parameters = true;             break;
             case h("gl_DrawIDARB"):
             case h("gl_DrawID"):         type = &glsl_type_builtin_int;    built_in = SpvBuiltInDrawIndex;      f->capability_draw_parameters = true;             break;
-            default:                     type = &glsl_type_builtin_int;    built_in = SpvBuiltInMax;            break;
+            default:
+               UNREACHABLE("unknown builtin name");
             }
 
             switch (built_in) {
