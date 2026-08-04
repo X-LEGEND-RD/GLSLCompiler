@@ -170,8 +170,8 @@ public:
    /*@}*/
 
 public:
-   unsigned int visit_type(const struct glsl_type *type, GLenum format = GL_FLOAT);
-   unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int type_id, GLenum format = GL_FLOAT);
+   unsigned int visit_type(const struct glsl_type *type, enum pipe_format format = PIPE_FORMAT_R32_FLOAT);
+   unsigned int visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int type_id, enum pipe_format format = PIPE_FORMAT_R32_FLOAT);
    unsigned int visit_constant_value(float value, unsigned vector_elements = 1);
    unsigned int visit_constant_value(int value, unsigned vector_elements = 1);
    unsigned int visit_constant_value(unsigned int value, unsigned vector_elements = 1);

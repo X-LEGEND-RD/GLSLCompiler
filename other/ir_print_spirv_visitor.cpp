@@ -60,59 +60,6 @@ static const unsigned int stage_type[] = {
    SpvExecutionModelMeshEXT,
 };
 
-static unsigned int get_vector_elements_from_image_format(GLenum format)
-{
-   switch (format)
-   {
-   case GL_R32F:
-   case GL_R16F:
-   case GL_R32UI:
-   case GL_R16UI:
-   case GL_R8UI:
-   case GL_R32I:
-   case GL_R16I:
-   case GL_R8I:
-   case GL_R16:
-   case GL_R8:
-   case GL_R16_SNORM:
-   case GL_R8_SNORM:
-      return 1;
-   case GL_RG32F:
-   case GL_RG16F:
-   case GL_RG32UI:
-   case GL_RG16UI:
-   case GL_RG8UI:
-   case GL_RG32I:
-   case GL_RG16I:
-   case GL_RG8I:
-   case GL_RG16:
-   case GL_RG8:
-   case GL_RG16_SNORM:
-   case GL_RG8_SNORM:
-      return 2;
-   case GL_R11F_G11F_B10F:
-      return 3;
-   default:
-   case GL_RGBA32F:
-   case GL_RGBA16F:
-   case GL_RGBA32UI:
-   case GL_RGBA16UI:
-   case GL_RGB10_A2UI:
-   case GL_RGBA8UI:
-   case GL_RGBA32I:
-   case GL_RGBA16I:
-   case GL_RGBA8I:
-   case GL_RGBA16:
-   case GL_RGB10_A2:
-   case GL_RGBA8:
-   case GL_RGBA16_SNORM:
-   case GL_RGBA8_SNORM:
-      return 4;
-   case 0:
-      return 5;
-   }
-}
-
 static constexpr unsigned int h(const char* key, const unsigned int hash = 0)
 {
     return (*key) ? h(key + 1, (hash << 5) ^ (*key) ^ hash) : hash;
@@ -460,7 +407,7 @@ ir_print_spirv_visitor::visit(ir_rvalue *)
 }
 
 unsigned int
-ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
+ir_print_spirv_visitor::visit_type(const struct glsl_type *type, enum pipe_format format)
 {
    if (glsl_type_is_array(type)) {
       unsigned int depth = 0;
@@ -496,7 +443,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
       }
       return vector_id;
    } else if (glsl_type_is_image(type) || glsl_type_is_sampler(type)) {
-      unsigned int vector_elements = glsl_type_is_image(type) ? get_vector_elements_from_image_format(format) : 0;
+      unsigned int vector_elements = glsl_type_is_image(type) ? util_format_get_nr_components(format) : 0;
       unsigned int image_id = f->image_id[type->sampler_dimensionality][type->sampled_type][vector_elements];
       if (image_id == 0) {
          unsigned int type_id = visit_type(glsl_type_is_image(type) ? glsl_simple_type(type->sampled_type, 1, 1) : &glsl_type_builtin_float);
@@ -566,8 +513,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
 
             if (format_id == SpvImageFormatUnknown)
                f->capability_storage_image_without_format = true;
-         }
-         else {
+         } else {
             f->types.opcode(9, SpvOpTypeImage, image_id, type_id, dim_id, 0, 0, 0, 1, format_id);
          }
 
@@ -670,7 +616,7 @@ ir_print_spirv_visitor::visit_type(const struct glsl_type *type, GLenum format)
 }
 
 unsigned int
-ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int type_id, GLenum format)
+ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigned int mode, unsigned int type_id, enum pipe_format format)
 {
    unsigned int storage_class = storage_mode[mode];
    unsigned int depth = 0;
@@ -684,7 +630,7 @@ ir_print_spirv_visitor::visit_type_pointer(const struct glsl_type *type, unsigne
    }
 
    if (glsl_type_is_image(type)) {
-      unsigned int vector_elements = glsl_type_is_image(type) ? get_vector_elements_from_image_format(format) : 0;
+      unsigned int vector_elements = glsl_type_is_image(type) ? util_format_get_nr_components(format) : 0;
       unsigned int pointer_id = f->pointer_image_id[type->sampler_dimensionality][type->sampled_type][vector_elements];
       if (pointer_id == 0) {
          pointer_id = f->id++;
@@ -908,8 +854,7 @@ ir_print_spirv_visitor::visit(ir_variable *ir)
             default:
                UNREACHABLE("unknown shader type");
             }
-         }
-         else {
+         } else {
             loc_id = ir->data.mode == ir_var_shader_in ? f->input_loc++ : f->output_loc++;
          }
 
@@ -1444,8 +1389,7 @@ ir_print_spirv_visitor::visit(ir_texture *ir)
          unsigned int coordinate_component = glsl_get_components(ir->coordinate->type);
          if (coordinate_component == 1) {
             components[0] = coordinate_id;
-         }
-         else {
+         } else {
             for (unsigned int i = 0; i < coordinate_component; ++i) {
                unsigned int type_id = visit_type(&glsl_type_builtin_float);
                unsigned int id = f->id++;
